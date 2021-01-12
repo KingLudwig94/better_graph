@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 
+import 'package:intl/intl.dart';
+
 class Series {
   final List<Data> values;
   final String name;
@@ -35,6 +37,15 @@ class Series {
 
 class Data {
   final DateTime time;
-  final value;
+  final num value;
   Data(this.time, this.value);
+
+  @override
+  String toString() {
+    return DateFormat.Hms().format(time) + ' ' + value.toStringAsFixed(3);
+  }
+
+  bool isSame(Data other) => other != null
+      ? this.time.isAtSameMomentAs(other.time) && this.value == other.value
+      : false;
 }

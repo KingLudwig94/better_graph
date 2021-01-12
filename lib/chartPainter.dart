@@ -5,7 +5,7 @@ import 'package:intl/intl.dart' show DateFormat;
 import 'package:in_date_utils/in_date_utils.dart';
 
 class MyChartPainter extends CustomPainter {
-  MyChartPainter(this.series, {Viewport viewport}) {
+  MyChartPainter(this.series, {Viewport viewport}) : super(repaint: selected) {
     if (viewport != null) {
       Series show = series;
       int s = show.values.indexWhere((element) =>
@@ -28,7 +28,9 @@ class MyChartPainter extends CustomPainter {
     this.viewport = viewport ??
         Viewport(start: series.values.first.time, end: series.values.last.time);
   }
+  static Map<Data, Offset> points;
 
+  static ValueNotifier<Data> selected = ValueNotifier(null);
   Viewport viewport;
   Series series;
   double chartW;
@@ -36,6 +38,7 @@ class MyChartPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    points = Map();
     chartW = size.width - 108;
     chartH = size.height - 108;
     viewport.xPerStep = chartW / viewport.stepCount;
@@ -82,6 +85,10 @@ class MyChartPainter extends CustomPainter {
       color: Colors.black,
       fontSize: 13,
     );
+    var legendStyle = TextStyle(
+      color: Colors.black,
+      fontSize: 13,
+    );
     // draw chart borders
     drawChartBorder(canvas, chBorder, rect);
     // draw data points
@@ -92,6 +99,7 @@ class MyChartPainter extends CustomPainter {
     drawText(canvas, rect.topLeft + Offset(0, -60), rect.width, titleStyle,
         "Weekly Data");
     drawLabels(canvas, rect, labelStyle);
+    drawLegend(canvas, rect.bottomLeft + Offset(0, 30), legendStyle);
   }
 
   void drawChartBorder(Canvas canvas, Paint chBorder, Rect rect) {
@@ -142,7 +150,7 @@ class MyChartPainter extends CustomPainter {
       if (first) {
         p.moveTo(x, rect.bottom - y);
         if (x - rect.left > 0) {
-          _drawPoint(canvas, rect, x, y);
+          _drawPoint(canvas, rect, x, y, e);
         } else {
           var e1 = series.values[1];
           var x1 = x + viewport.xPerStep * _calculateFraction(e1.time, e.time);
@@ -157,7 +165,7 @@ class MyChartPainter extends CustomPainter {
       } else {
         if (x - rect.right < 0) {
           p.lineTo(x, rect.bottom - y);
-          _drawPoint(canvas, rect, x, y);
+          _drawPoint(canvas, rect, x, y, e);
         } else {
           var i = series.values.indexOf(e);
           var e1 = series.values[i - 1];
@@ -190,14 +198,15 @@ class MyChartPainter extends CustomPainter {
     }
   }
 
-  _drawPoint(Canvas canvas, Rect rect, double x, double y) {
+  _drawPoint(Canvas canvas, Rect rect, double x, double y, Data e) {
     canvas.drawCircle(
       Offset(x, rect.bottom - y),
-      4,
+      e.isSame(selected?.value) ? 7 : 4,
       Paint()
         ..style = PaintingStyle.fill
         ..color = Colors.green,
     );
+    points.putIfAbsent(e, () => Offset(x, rect.bottom - y));
   }
 
   drawText(Canvas canvas, Offset position, double width, TextStyle style,
@@ -213,26 +222,55 @@ class MyChartPainter extends CustomPainter {
     // draw x Label
     var x = rect.left;
     String labelformat;
-    if (viewport.step == Step.Hour) {
+    if (viewport.step == Step.Day) {
+      labelformat = DateFormat.Md().pattern;
+    } else if (viewport.step == Step.Hour) {
       labelformat = DateFormat.Hm().pattern;
     } else if (viewport.step == Step.Minute) {
       labelformat = DateFormat.m().pattern;
     }
-    for (var i = 0; i < viewport.steps.length; i++) {
-      drawText(canvas, Offset(x, rect.bottom + 10), viewport.xPerStep,
-          labelStyle, DateFormat(labelformat).format(viewport.steps[i]));
-      x += viewport.xPerStep;
+
+    List<String> labels;
+    double xStep;
+    int skip = 5;
+    if (viewport.xPerStep < 30) {
+      var t = List.from(viewport.steps);
+      var temp = Map.fromIterable(t, key: (_) => t.indexOf(_), value: (_) => _)
+        ..removeWhere((key, value) => key % skip != 0);
+      labels = temp
+          .map<int, String>(
+              (_, e) => MapEntry(_, DateFormat(labelformat).format(e)))
+          .values
+          .toList();
+      xStep = viewport.xPerStep * (skip);
+    } else {
+      labels =
+          viewport.steps.map((e) => DateFormat(labelformat).format(e)).toList();
+      xStep = viewport.xPerStep;
     }
+
+    labels.forEach((element) {
+      drawText(canvas, Offset(x - xStep / skip, rect.bottom + 10), xStep,
+          labelStyle, element);
+      x += xStep;
+    });
+
     /* drawText(canvas, Offset(x - 20, rect.bottom + 10), 40, labelStyle,
-        DateFormat.Hm().format(viewport.start));
-    drawText(canvas, Offset(rect.right - 20, rect.bottom + 10), 40, labelStyle,
-        DateFormat.Hm().format(viewport.end)); */
+            DateFormat.Hm().format(viewport.start));
+        drawText(canvas, Offset(rect.right - 20, rect.bottom + 10), 40, labelStyle,
+            DateFormat.Hm().format(viewport.end)); */
 
     //draw y Label
     drawText(canvas, rect.bottomLeft + Offset(-25, -10), 40, labelStyle,
         series.min.toStringAsFixed(1)); // print min value
     drawText(canvas, rect.topLeft + Offset(-25, 0), 40, labelStyle,
         series.max.toStringAsFixed(1)); // print max value
+  }
+
+  void drawLegend(Canvas canvas, Offset offset, TextStyle legendStyle) {
+    if (selected.value == null) return;
+    drawText(canvas, offset, double.maxFinite, legendStyle,
+        series.name + ': ' + selected.value.toString());
   }
 
   @override

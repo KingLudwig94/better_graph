@@ -36,20 +36,20 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     series = Series(
-/*         List.generate(
+        List.generate(
             10,
             (index) => Data(
                 DateTime.now().subtract(Duration(
                   hours: random.nextInt(16), minutes: random.nextInt(30)
                 )),
-                random.nextDouble())) */
-        [
+                random.nextDouble()))
+        /* [
           Data(
               DateTime.parse('2021-01-11 16:29:47.355589'), 0.7329044472692887),
           Data(
               DateTime.parse('2021-01-11 16:33:17.355592'), 0.5708143077340662),
           Data(DateTime.parse('2021-01-11 16:42:47.355493'), 0.7528595474568435)
-        ], 'test');
+        ] */, 'test');
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
@@ -59,11 +59,11 @@ class _MyHomePageState extends State<MyHomePage> {
         aspectRatio: 16 / 9,
         child: Chart(
           series: series,
-          startDate: DateTime.parse('2021-01-11 16:42:47.355493').subtract(
+          /* startDate: DateTime.parse('2021-01-11 16:42:47.355493').subtract(
             Duration(minutes: 10),
           ),
           endDate: DateTime.parse('2021-01-11 16:42:47.355493')
-              .subtract(Duration(minutes: 5)),
+              .subtract(Duration(minutes: 5)), */
         ),
       )),
     );

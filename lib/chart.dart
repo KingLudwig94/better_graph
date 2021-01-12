@@ -4,10 +4,9 @@ import 'package:better_graph/viewport.dart';
 import 'package:flutter/material.dart' hide Viewport, Step;
 
 class Chart extends StatefulWidget {
-  Chart({Key key, this.series, this.startDate, this.endDate}) : super(key: key);
+  Chart({Key key, this.series, this.viewport}) : super(key: key);
   final Series series;
-  final DateTime startDate;
-  final DateTime endDate;
+  final Viewport viewport;
   @override
   _ChartState createState() => _ChartState();
 }
@@ -18,9 +17,9 @@ class _ChartState extends State<Chart> {
   Viewport viewport;
   @override
   void initState() {
-    startTime = widget.startDate;
-    endTime = widget.endDate;
-    viewport = Viewport(start: startTime, end: endTime);
+    startTime = widget.series.start;
+    endTime = widget.series.end;
+    viewport = widget.viewport ?? Viewport(start: startTime, end: endTime);
     super.initState();
   }
 
@@ -30,6 +29,7 @@ class _ChartState extends State<Chart> {
       child: GestureDetector(
         onHorizontalDragUpdate: handleHorizontalDrag,
         onVerticalDragUpdate: handleVerticalDrag,
+        onTapUp: handleTap,
         child: CustomPaint(
           child: Container(),
           painter: MyChartPainter(
@@ -47,6 +47,10 @@ class _ChartState extends State<Chart> {
     setState(() {
       if (viewport.step == Step.Minute) {
         duration = Duration(minutes: dd.floor());
+      } else if (viewport.step == Step.Hour) {
+        duration = Duration(minutes: dd.floor() * 30);
+      } else if (viewport.step == Step.Day) {
+        duration = Duration(hours: dd.floor() * 12);
       }
       var startTime1 = startTime.subtract(duration);
       var endTime1 = endTime.subtract(duration);
@@ -67,10 +71,16 @@ class _ChartState extends State<Chart> {
     setState(() {
       if (viewport.step == Step.Minute) {
         duration = Duration(minutes: dd.floor());
+      } else if (viewport.step == Step.Hour) {
+        duration = Duration(hours: dd.floor());
+      } else if (viewport.step == Step.Day) {
+        duration = Duration(hours: dd.floor() * 12);
       }
+
       var startTime1 = startTime.subtract(duration);
       var endTime1 = endTime.add(duration);
       if (endTime1.difference(startTime1).compareTo(widget.series.rangeX) > 0)
+        // max out
         return;
       if (endTime1.difference(startTime1).inMinutes < 1) return;
       startTime = startTime1;
@@ -78,5 +88,12 @@ class _ChartState extends State<Chart> {
 
       viewport = Viewport(start: startTime, end: endTime);
     });
+  }
+
+  void handleTap(TapUpDetails details) {
+    var sel = MyChartPainter.points?.entries?.firstWhere(
+        (element) => (element.value - details.localPosition).distance < 10.0,
+        orElse: () => null);
+    MyChartPainter.selected.value = sel != null ? sel.key : null;
   }
 }
