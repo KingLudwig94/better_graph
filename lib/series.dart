@@ -1,16 +1,16 @@
 import 'dart:math' as math;
 
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class Series {
   final List<Data> values;
   final String name;
-/*   final num min;
-  final num max;
-  final num rangeY;
-  final Duration rangeX; */
-  Series(List<Data> val, this.name)
-      : values = val..sort((a, b) => a.time.compareTo(b.time));
+  final Color color;
+  final bool fill;
+  Series(List<Data> val, this.name, {Color color, this.fill = false})
+      : values = val..sort((a, b) => a.time.compareTo(b.time)),
+        this.color = color ?? Color(Colors.blue.value);
 
   num get min => values
       .map<num>((e) => e.value)
@@ -33,12 +33,18 @@ class Series {
     return values.map((e) => "${e.time} - ${e.value}\n").toList().toString() +
         " range: $rangeX";
   }
+
+  Series copyWith({Color color, List<Data> values, String name, bool fill}) {
+    return Series(values ?? this.values, name ?? this.name,
+        color: color ?? this.color, fill: fill ?? this.fill);
+  }
 }
 
 class Data {
   final DateTime time;
   final num value;
-  Data(this.time, this.value);
+  final Color color;
+  Data(this.time, this.value, {this.color});
 
   @override
   String toString() {
@@ -48,4 +54,19 @@ class Data {
   bool isSame(Data other) => other != null
       ? this.time.isAtSameMomentAs(other.time) && this.value == other.value
       : false;
+}
+
+class Range {
+  num top;
+  num bottom;
+  DateTime start;
+  DateTime end;
+  Color color;
+  Range({this.top, this.bottom, this.end, this.start, this.color = Colors.grey})
+      : assert(
+            (top != null && bottom != null) || (start != null && end != null));
+  @override
+  String toString() {
+    return 'X: $start - $end\n Y: $top - $bottom';
+  }
 }

@@ -4,9 +4,10 @@ import 'package:better_graph/viewport.dart';
 import 'package:flutter/material.dart' hide Viewport, Step;
 
 class Chart extends StatefulWidget {
-  Chart({Key key, this.series, this.viewport}) : super(key: key);
+  Chart({Key key, this.series, this.viewport, this.ranges}) : super(key: key);
   final Series series;
   final Viewport viewport;
+  final List<Range> ranges;
   @override
   _ChartState createState() => _ChartState();
 }
@@ -35,6 +36,7 @@ class _ChartState extends State<Chart> {
           painter: MyChartPainter(
             widget.series,
             viewport: viewport,
+            ranges: widget.ranges,
           ),
         ),
       ),
