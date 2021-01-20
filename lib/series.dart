@@ -8,7 +8,10 @@ class Series {
   final String name;
   final Color color;
   final bool fill;
-  Series(List<Data> val, this.name, {Color color, this.fill = false})
+  final SeriesType type;
+
+  Series(List<Data> val, this.name,
+      {Color color, this.fill = false, this.type = SeriesType.line})
       : values = val..sort((a, b) => a.time.compareTo(b.time)),
         this.color = color ?? Color(Colors.blue.value);
 
@@ -34,9 +37,16 @@ class Series {
         " range: $rangeX";
   }
 
-  Series copyWith({Color color, List<Data> values, String name, bool fill}) {
+  Series copyWith(
+      {Color color,
+      List<Data> values,
+      String name,
+      bool fill,
+      SeriesType type}) {
     return Series(values ?? this.values, name ?? this.name,
-        color: color ?? this.color, fill: fill ?? this.fill);
+        color: color ?? this.color,
+        fill: fill ?? this.fill,
+        type: type ?? this.type);
   }
 }
 
@@ -58,15 +68,29 @@ class Data {
 
 class Range {
   num top;
+  String topLabel;
   num bottom;
+  String bottomLabel;
+  bool yLabel;
   DateTime start;
+  bool xLabel;
   DateTime end;
   Color color;
-  Range({this.top, this.bottom, this.end, this.start, this.color = Colors.grey})
-      : assert(
-            (top != null && bottom != null) || (start != null && end != null));
+  Range(
+      {this.top,
+      this.bottom,
+      this.end,
+      this.start,
+      this.color = Colors.grey,
+      this.bottomLabel,
+      this.topLabel,
+      this.yLabel = false,
+      this.xLabel = false});
+
   @override
   String toString() {
     return 'X: $start - $end\n Y: $top - $bottom';
   }
 }
+
+enum SeriesType { line, stem, dot, noValue }

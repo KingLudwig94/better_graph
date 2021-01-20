@@ -7,15 +7,15 @@ import 'package:intl/intl.dart' show DateFormat;
 import 'package:in_date_utils/in_date_utils.dart';
 
 class MyChartPainter extends CustomPainter {
-  MyChartPainter(this.series, {Viewport viewport, this.ranges})
+  MyChartPainter(this.seriesList, {this.viewport, this.ranges})
       : super(repaint: selected) {
-    if (viewport != null) {
+    seriesList = seriesList.map((series) {
       Series show = series;
       int s = show.values.indexWhere((element) =>
           viewport.start != null ? element.time.isAfter(viewport.start) : true);
       int e = show.values.indexWhere((element) =>
           viewport.end != null ? !element.time.isBefore(viewport.end) : false);
-      series = series.copyWith(
+      return series = series.copyWith(
         values: series.values
             .getRange(
                 s > 0 ? s - 1 : 0,
@@ -26,17 +26,15 @@ class MyChartPainter extends CustomPainter {
                     : series.values.length)
             .toList(),
       );
-    }
+    }).toList();
     //TODO: fix no data in rangeX
-    this.viewport = viewport ??
-        Viewport(start: series.values.first.time, end: series.values.last.time);
   }
 
-  static Map<Data, Offset> points;
+  static Map<String, Map<Data, Offset>> points;
   static ValueNotifier<Data> selected = ValueNotifier(null);
   List<Range> ranges;
   Viewport viewport;
-  Series series;
+  List<Series> seriesList;
   double chartW;
   double chartH;
   double yRatio;
@@ -47,14 +45,18 @@ class MyChartPainter extends CustomPainter {
   TextStyle titleStyle;
   TextStyle labelStyle;
   TextStyle legendStyle;
+  double labelOffset;
+  double legendOffset;
+  String labelFormat;
 
   @override
   void paint(Canvas canvas, Size size) {
+    labelOffset = 7.0;
     points = Map();
     chartW = size.width - 108;
     chartH = size.height - 108;
     viewport.xPerStep = chartW / viewport.stepCount;
-    yRatio = (chartH / series.rangeY);
+    yRatio = (chartH / viewport.rangeY);
 
     var paint = Paint()..color = Colors.white;
     canvas.drawPaint(paint);
@@ -83,16 +85,6 @@ class MyChartPainter extends CustomPainter {
       ..strokeWidth = 1.0
       ..style = PaintingStyle.stroke;
 
-    dpPaint = Paint()
-      ..color = series.color
-      ..strokeWidth = 3.0
-      ..style = PaintingStyle.stroke;
-
-    dpPaintFill = Paint()
-      ..color = series.color.withAlpha(30)
-      ..strokeWidth = 3.0
-      ..style = PaintingStyle.fill;
-
     titleStyle = TextStyle(
       color: Colors.black,
       fontSize: 40,
@@ -110,15 +102,35 @@ class MyChartPainter extends CustomPainter {
     var rect = Rect.fromCenter(center: center, width: chartW, height: chartH);
     // draw chart borders
     drawChartBorder(canvas, chBorder, rect);
-    // draw data points
-    drawDataPoints(canvas, dpPaint, rect);
     // draw chart guides
     drawChartGuides(canvas, chBorder, rect);
     // draw chart title
     drawText(canvas, rect.topLeft + Offset(0, -60), rect.width, titleStyle,
         "Weekly Data");
+
+    seriesList.forEach((series) {
+      points[series.name] = {};
+      dpPaint = Paint()
+        ..color = series.color
+        ..strokeWidth = 3.0
+        ..style = PaintingStyle.stroke;
+
+      dpPaintFill = Paint()
+        ..color = series.color.withAlpha(30)
+        ..strokeWidth = 3.0
+        ..style = PaintingStyle.fill;
+      if (series.type == SeriesType.noValue)
+        //draw novalue data
+        drawNoValPoints(canvas, dpPaint, rect, series);
+      else
+        // draw data points
+        drawDataPoints(canvas, dpPaint, rect, series);
+
+      if (series.values.contains(selected.value))
+        drawLegend(canvas, rect, legendStyle, series);
+    });
+    // draw labels
     drawLabels(canvas, rect, labelStyle);
-    drawLegend(canvas, rect.bottomLeft + Offset(0, 30), legendStyle);
     drawRanges(canvas, rect);
   }
 
@@ -143,7 +155,7 @@ class MyChartPainter extends CustomPainter {
         Offset(rect.right, rect.bottom - yD * 2), chBorder);
   }
 
-  void drawDataPoints(Canvas canvas, dpPaint, Rect rect) {
+  void drawDataPoints(Canvas canvas, dpPaint, Rect rect, Series series) {
     if (series == null && series.values.isNotEmpty) return;
     // this ratio is the number of y pixels per unit data
     var p = Path();
@@ -156,7 +168,7 @@ class MyChartPainter extends CustomPainter {
       var d = e.time;
 
       // (v-minD) because we start our range at min value
-      var y = (v - series.min) * yRatio; // * percentage; // for animation
+      var y = (v - viewport.min) * yRatio; // * percentage; // for animation
       if (yRatio.isInfinite) y = chartH / 2;
 
       if (first) {
@@ -169,7 +181,7 @@ class MyChartPainter extends CustomPainter {
       if (first) {
         p.moveTo(x, rect.bottom - y);
         if (x - rect.left > 0) {
-          _addPoint(rect, x, y, e);
+          _addPoint(rect, x, y, e, series.name);
         } else {
           var e1 = series.values[1];
           var x1 = x + viewport.xPerStep * _calculateFraction(e1.time, e.time);
@@ -183,8 +195,13 @@ class MyChartPainter extends CustomPainter {
         first = false;
       } else {
         if (x - rect.right < 0) {
-          _addPoint(rect, x, y, e);
-          p.lineTo(x, rect.bottom - y);
+          _addPoint(rect, x, y, e, series.name);
+          if (series.type == SeriesType.line)
+            p.lineTo(x, rect.bottom - y);
+          else if (series.type == SeriesType.stem) {
+            p.moveTo(x, rect.bottom - y);
+            p.lineTo(x, rect.bottom);
+          }
         } else {
           var i = series.values.indexOf(e);
           var e1 = series.values[i - 1];
@@ -194,7 +211,8 @@ class MyChartPainter extends CustomPainter {
           var q = y - m * x;
           var y0 = m * rect.right + q;
           //_drawPoint(canvas, rect, rect.left, y0);
-          p.lineTo(rect.right, rect.bottom - y0);
+          if (series.type == SeriesType.line)
+            p.lineTo(rect.right, rect.bottom - y0);
         }
       }
     });
@@ -206,8 +224,8 @@ class MyChartPainter extends CustomPainter {
       canvas.drawPath(p, dpPaintFill);
     }
 
-    points.forEach(
-        (key, value) => _drawPoint(canvas, rect, value.dx, value.dy, key));
+    points[series.name].forEach((key, value) =>
+        _drawPoint(canvas, rect, value.dx, value.dy, key, series));
   }
 
   double _calculateFraction(DateTime d, DateTime prev) {
@@ -223,7 +241,8 @@ class MyChartPainter extends CustomPainter {
     }
   }
 
-  _drawPoint(Canvas canvas, Rect rect, double x, double y, Data e) {
+  _drawPoint(
+      Canvas canvas, Rect rect, double x, double y, Data e, Series series) {
     canvas.drawCircle(
       Offset(x, y),
       e.isSame(selected?.value) ? 7 : 4,
@@ -233,8 +252,8 @@ class MyChartPainter extends CustomPainter {
     );
   }
 
-  _addPoint(Rect rect, double x, double y, Data e) {
-    points.putIfAbsent(e, () => Offset(x, rect.bottom - y));
+  _addPoint(Rect rect, double x, double y, Data e, String sName) {
+    points[sName].putIfAbsent(e, () => Offset(x, rect.bottom - y));
   }
 
   drawText(Canvas canvas, Offset position, double width, TextStyle style,
@@ -249,13 +268,12 @@ class MyChartPainter extends CustomPainter {
   void drawLabels(Canvas canvas, Rect rect, TextStyle labelStyle) {
     // draw x Label
     var x = rect.left;
-    String labelformat;
     if (viewport.step == Step.Day) {
-      labelformat = DateFormat.Md().pattern;
+      labelFormat = DateFormat.Md().pattern;
     } else if (viewport.step == Step.Hour) {
-      labelformat = DateFormat.Hm().pattern;
+      labelFormat = DateFormat.Hm().pattern;
     } else if (viewport.step == Step.Minute) {
-      labelformat = DateFormat.m().pattern;
+      labelFormat = DateFormat.m().pattern;
     }
 
     List<String> labels;
@@ -267,46 +285,51 @@ class MyChartPainter extends CustomPainter {
         ..removeWhere((key, value) => key % skip != 0);
       labels = temp
           .map<int, String>(
-              (_, e) => MapEntry(_, DateFormat(labelformat).format(e)))
+              (_, e) => MapEntry(_, DateFormat(labelFormat).format(e)))
           .values
           .toList();
       xStep = viewport.xPerStep * (skip);
     } else {
       labels =
-          viewport.steps.map((e) => DateFormat(labelformat).format(e)).toList();
+          viewport.steps.map((e) => DateFormat(labelFormat).format(e)).toList();
       xStep = viewport.xPerStep;
     }
 
     labels.forEach((element) {
-      drawText(canvas, Offset(x - xStep / skip, rect.bottom + 10), xStep,
-          labelStyle, element);
+      drawText(canvas, Offset(x - xStep / skip, rect.bottom + labelOffset),
+          xStep, labelStyle, element);
       x += xStep;
     });
 
     //draw y Label
-    drawText(canvas, rect.bottomLeft + Offset(-25, -10), 40, labelStyle,
-        series.min.toStringAsFixed(1)); // print min value
-    drawText(canvas, rect.topLeft + Offset(-25, 0), 40, labelStyle,
-        series.max.toStringAsFixed(1)); // print max value
+    drawText(canvas, rect.bottomLeft + Offset(-40, -10), 40, labelStyle,
+        viewport.min.toStringAsFixed(2)); // print min value
+    drawText(canvas, rect.topLeft + Offset(-40, -10), 40, labelStyle,
+        viewport.max.toStringAsFixed(2)); // print max value
   }
 
-  void drawLegend(Canvas canvas, Offset offset, TextStyle legendStyle) {
+  void drawLegend(
+      Canvas canvas, Rect rect, TextStyle legendStyle, Series series) {
     if (selected.value == null) return;
-    //TODO: cancellare se variano i dati
-    drawText(canvas, offset, double.maxFinite, legendStyle,
+    drawText(
+        canvas,
+        rect.bottomLeft + Offset(0, labelOffset + 30),
+        double.maxFinite,
+        legendStyle,
         series.name + ': ' + selected.value.toString());
   }
 
   void drawRanges(Canvas canvas, Rect rect) {
+    if (ranges == null) return;
     ranges.forEach((element) {
       Paint paint = Paint()
         ..color = element.color.withOpacity(.5)
         ..style = PaintingStyle.fill;
       double top = element.top != null
-          ? rect.bottom - (element.top - series.min) * yRatio
+          ? rect.bottom - (element.top - viewport.min) * yRatio
           : rect.top;
       double bottom = element.bottom != null
-          ? rect.bottom - (element.bottom - series.min) * yRatio
+          ? rect.bottom - (element.bottom - viewport.min) * yRatio
           : rect.bottom;
       double left = element.start != null
           ? rect.left +
@@ -332,6 +355,15 @@ class MyChartPainter extends CustomPainter {
                   : right,
           bottom > rect.bottom ? rect.bottom : bottom);
       canvas.drawRect(r, paint);
+      if (element.xLabel) {
+        drawText(canvas, Offset(left, rect.top - 15), 40, labelStyle,
+            DateFormat(labelFormat).format(element.start));
+        drawText(canvas, Offset(right - 40, rect.top - 15), 40, labelStyle,
+            DateFormat(labelFormat).format(element.end));
+      }
+      if (element.yLabel)
+        drawText(canvas, Offset(rect.left - 40, bottom), 40, labelStyle,
+            element.bottom.toStringAsFixed(2));
     });
   }
 
@@ -340,4 +372,32 @@ class MyChartPainter extends CustomPainter {
 
   @override
   bool shouldRebuildSemantics(MyChartPainter oldDelegate) => false;
+
+  void drawNoValPoints(Canvas canvas, Paint dpPaint, Rect rect, Series series) {
+    if (series == null) return;
+    double offset = labelOffset;
+    num nNonVal = seriesList
+        .where((element) => element.type == SeriesType.noValue)
+        .length;
+    labelOffset += labelOffset * nNonVal;
+    var fraction;
+    var x = rect.left;
+    bool first = true;
+    series.values.forEach((e) {
+      var d = e.time;
+      if (first) {
+        fraction = _calculateFraction(d, viewport.start);
+        first = false;
+      } else
+        fraction = _calculateFraction(
+            d, series.values.elementAt(series.values.indexOf(e) - 1).time);
+      x += viewport.xPerStep * fraction;
+      if (x - rect.right < 0 && x - rect.left > 0)
+        _addPoint(rect, x, 0, e, series.name);
+    });
+    points[series.name].forEach((key, value) =>
+        _drawPoint(canvas, rect, value.dx, rect.bottom + offset, key, series));
+    canvas.drawLine(Offset(rect.left, rect.bottom + offset + 7),
+        Offset(rect.right, rect.bottom + offset + 7), Paint());
+  }
 }

@@ -5,20 +5,21 @@ enum Step { Minute, Hour, Day, Month }
 class Viewport {
   DateTime start;
   DateTime end;
-  Duration range;
+  Duration rangeX;
+  num max;
+  num min;
   Step step;
   double xPerStep;
   List<DateTime> steps;
   int stepCount;
+  num rangeY;
 
-  Viewport({
-    DateTime start,
-    DateTime end,
-  }) {
+  Viewport({DateTime start, DateTime end, this.max, this.min}) {
     this.start = start;
     this.end = end;
-    range = end.difference(start);
+    rangeX = end.difference(start);
     step = _setStep();
+    rangeY = max - min;
     if (step == Step.Day) {
       this.start = DateUtils.copyWith(this.start,
           hour: 0, minute: 0, second: 0, millisecond: 0, microsecond: 0);
@@ -29,9 +30,9 @@ class Viewport {
           second: 0,
           millisecond: 0,
           microsecond: 0);
-      range = this.end.difference(this.start);
+      rangeX = this.end.difference(this.start);
       step = _setStep();
-      stepCount = range.inDays;
+      stepCount = rangeX.inDays;
       steps = [this.start]
         ..addAll(stepCount > 0
             ? List.generate(stepCount - 1,
@@ -47,9 +48,9 @@ class Viewport {
           second: 0,
           millisecond: 0,
           microsecond: 0);
-      range = this.end.difference(this.start);
+      rangeX = this.end.difference(this.start);
       step = _setStep();
-      stepCount = range.inHours;
+      stepCount = rangeX.inHours;
       steps = [this.start]
         ..addAll(stepCount > 0
             ? List.generate(stepCount - 1,
@@ -64,9 +65,9 @@ class Viewport {
           second: 0,
           millisecond: 0,
           microsecond: 0);
-      range = this.end.difference(this.start);
+      rangeX = this.end.difference(this.start);
       step = _setStep();
-      stepCount = range.inMinutes;
+      stepCount = rangeX.inMinutes;
       steps = [this.start]
         ..addAll(stepCount > 0
             ? List.generate(stepCount - 1,
@@ -77,9 +78,9 @@ class Viewport {
   }
 
   Step _setStep() {
-    if (range.inDays > 0) {
+    if (rangeX.inDays > 0) {
       return Step.Day;
-    } else if (range.inHours > 0) {
+    } else if (rangeX.inHours > 0) {
       return Step.Hour;
     } else
       return Step.Minute;

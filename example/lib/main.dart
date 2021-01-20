@@ -30,12 +30,11 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  Series series;
+  List<Series> series;
   Random random = Random();
 
-  @override
-  Widget build(BuildContext context) {
-    series = Series(
+  Series generateSeries(String name, SeriesType type) {
+    return Series(
         List.generate(
             10,
             (index) => Data(
@@ -51,8 +50,25 @@ class _MyHomePageState extends State<MyHomePage> {
           Data(DateTime.parse('2021-01-11 16:42:47.355493'), 0.7528595474568435)
         ] */
         ,
-        'test',
+        name,
+        type: type,
         color: Colors.red);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    series = [
+      generateSeries('test', SeriesType.line),
+      generateSeries('name', SeriesType.noValue)
+    ]
+        /* [
+          Data(
+              DateTime.parse('2021-01-11 16:29:47.355589'), 0.7329044472692887),
+          Data(
+              DateTime.parse('2021-01-11 16:33:17.355592'), 0.5708143077340662),
+          Data(DateTime.parse('2021-01-11 16:42:47.355493'), 0.7528595474568435)
+        ] */
+        ;
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
@@ -61,19 +77,14 @@ class _MyHomePageState extends State<MyHomePage> {
           child: AspectRatio(
         aspectRatio: 16 / 9,
         child: Chart(
-          series: series,
+          seriesList: series,
           ranges: [
-           // Range(top: series.max / 2, bottom: series.min * 2),
+            Range(top: series.first.max / 2, bottom: series.first.min * 2),
             Range(
-                start: series.start.add(Duration(minutes: 5)),
-                end: series.end.subtract(Duration(minutes: 5)),
-                color: Colors.blue)
+                start: series.first.start.add(Duration(minutes: 5)),
+                end: series.first.end.subtract(Duration(minutes: 5)),
+                color: Colors.blue.shade200, xLabel: true, yLabel: true)
           ],
-          /* startDate: DateTime.parse('2021-01-11 16:42:47.355493').subtract(
-            Duration(minutes: 10),
-          ),
-          endDate: DateTime.parse('2021-01-11 16:42:47.355493')
-              .subtract(Duration(minutes: 5)), */
         ),
       )),
     );
