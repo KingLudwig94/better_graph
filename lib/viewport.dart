@@ -13,13 +13,34 @@ class Viewport {
   List<DateTime> steps;
   int stepCount;
   num rangeY;
+  num secondaryMax = 0;
+  num secondaryMin = 0;
+  num secondaryRangeY = 0;
 
-  Viewport({DateTime start, DateTime end, this.max, this.min}) {
+  Viewport copyWith(DateTime start, DateTime end) {
+    return Viewport(
+        start: start,
+        end: end,
+        max: this.max,
+        min: this.min,
+        secondaryMax: this.secondaryMax,
+        secondaryMin: this.secondaryMin);
+  }
+
+  Viewport(
+      {DateTime start,
+      DateTime end,
+      this.max,
+      this.min,
+      this.secondaryMax = 0,
+      this.secondaryMin = 0}) {
     this.start = start;
     this.end = end;
     rangeX = end.difference(start);
     step = _setStep();
     rangeY = max - min;
+    if (this.secondaryMax != null && this.secondaryMin != null)
+      secondaryRangeY = secondaryMax - secondaryMin;
     if (step == Step.Day) {
       this.start = DateUtils.copyWith(this.start,
           hour: 0, minute: 0, second: 0, millisecond: 0, microsecond: 0);

@@ -6,11 +6,38 @@ import 'package:better_graph/viewport.dart';
 import 'package:flutter/material.dart' hide Viewport, Step;
 
 class Chart extends StatefulWidget {
-  Chart({Key key, this.seriesList, this.viewport, this.ranges})
-      : super(key: key);
+  Chart({
+    Key key,
+    this.seriesList,
+    this.viewport,
+    this.ranges,
+    this.title,
+    this.bgColor,
+    this.measureUnit,
+    this.secondaryMeasureUnit,
+    this.showLegend = true,
+    this.pan = true,
+    this.zoom = true,
+    this.select = true,
+    this.twoColLegend = true,
+  })  : series = seriesList.where((e) => !e.secondaryAxis).toList(),
+        secondarySeries =
+            seriesList.where((element) => element.secondaryAxis).toList(),
+        super(key: key);
+  final List<Series> series;
+  final List<Series> secondarySeries;
   final List<Series> seriesList;
   final Viewport viewport;
   final List<Range> ranges;
+  final String title;
+  final Color bgColor;
+  final bool showLegend;
+  final String measureUnit;
+  final String secondaryMeasureUnit;
+  final bool zoom;
+  final bool pan;
+  final bool select;
+  final bool twoColLegend;
   @override
   _ChartState createState() => _ChartState();
 }
@@ -19,11 +46,20 @@ class _ChartState extends State<Chart> {
   DateTime startTime;
   DateTime endTime;
   Viewport viewport;
+  Viewport secondaryViewport;
   DateTime minT;
   DateTime maxT;
   Duration rangeX;
-  num maxV;
-  num minV;
+  num maxY;
+  num minY;
+  MyChartPainter chart;
+  ValueNotifier<Data> _selected = ValueNotifier(null);
+
+  @override
+  void initState() {
+    viewport = calculateViewport();
+    super.initState();
+  }
 
   Viewport calculateViewport() {
     minT = widget.seriesList.map((e) => e.start).reduce(
@@ -33,20 +69,48 @@ class _ChartState extends State<Chart> {
         (value, element) => value.compareTo(element) > 0 ? value : element);
     endTime = maxT;
     rangeX = maxT.difference(minT);
-    maxV = widget.seriesList
+    maxY = widget.series
         .where((element) => element.type != SeriesType.noValue)
         .map((e) => e.max)
         .reduce((value, element) => max(value, element));
-    minV = widget.seriesList
+    minY = widget.series
         .where((element) => element.type != SeriesType.noValue)
         .map((e) => e.min)
         .reduce((value, element) => min(value, element));
-    return Viewport(start: startTime, end: endTime, max: maxV, min: minV);
+    num maxSy;
+    num minSy;
+    if (widget.secondarySeries.isNotEmpty) {
+      maxSy = widget.secondarySeries
+          .map((e) => e.max)
+          .reduce((value, element) => max(value, element));
+      minSy = widget.secondarySeries
+          .map((e) => e.min)
+          .reduce((value, element) => min(value, element));
+    }
+    return Viewport(
+      start: startTime,
+      end: endTime,
+      max: maxY,
+      min: minY,
+      secondaryMax: maxSy,
+      secondaryMin: minSy,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    viewport = widget.viewport ?? calculateViewport();
+    chart = MyChartPainter(widget.series,
+        viewport: viewport,
+        secondarySeries: widget.secondarySeries,
+        ranges: widget.ranges,
+        title: widget.title,
+        bgColor: widget.bgColor,
+        showLegend: widget.showLegend,
+        secondaryMeasureUnit: widget.secondaryMeasureUnit,
+        measureUnit: widget.measureUnit,
+        twoColLegend: widget.twoColLegend,
+        selected: _selected);
+
     return Container(
       child: GestureDetector(
         onHorizontalDragUpdate: handleHorizontalDrag,
@@ -54,17 +118,14 @@ class _ChartState extends State<Chart> {
         onTapUp: handleTap,
         child: CustomPaint(
           child: Container(),
-          painter: MyChartPainter(
-            widget.seriesList,
-            viewport: viewport,
-            ranges: widget.ranges,
-          ),
+          painter: chart,
         ),
       ),
     );
   }
 
   void handleHorizontalDrag(DragUpdateDetails details) {
+    if (!widget.pan) return;
     final dd = details.primaryDelta;
     Duration duration;
     setState(() {
@@ -77,25 +138,26 @@ class _ChartState extends State<Chart> {
       }
       var startTime1 = startTime.subtract(duration);
       var endTime1 = endTime.subtract(duration);
-      if (!(startTime1.compareTo(minT) < 0) ||
-          (!(endTime1.compareTo(maxT) > 0))) {
+      if ((startTime1.compareTo(minT) < 0) ||
+          ((endTime1.compareTo(maxT) > 0))) {
         return;
       }
       startTime = startTime1;
       endTime = endTime1;
 
-      viewport = calculateViewport();
+      viewport = viewport.copyWith(startTime, endTime);
     });
   }
 
   void handleVerticalDrag(DragUpdateDetails details) {
+    if (!widget.zoom) return;
     final dd = details.primaryDelta;
     Duration duration;
     setState(() {
       if (viewport.step == Step.Minute) {
         duration = Duration(minutes: dd.floor());
       } else if (viewport.step == Step.Hour) {
-        duration = Duration(hours: dd.floor());
+        duration = Duration(minutes: dd.floor() * 15);
       } else if (viewport.step == Step.Day) {
         duration = Duration(hours: dd.floor() * 12);
       }
@@ -109,16 +171,17 @@ class _ChartState extends State<Chart> {
       startTime = startTime1;
       endTime = endTime1;
 
-      viewport = calculateViewport();
+      viewport = viewport.copyWith(startTime, endTime);
     });
   }
 
   void handleTap(TapUpDetails details) {
+    if (!widget.select) return;
     Map<Data, Offset> o = Map();
-    MyChartPainter.points.forEach((key, value) => o.addAll(value));
+    chart.points.forEach((key, value) => o.addAll(value));
     var sel = o.entries.firstWhere(
         (element) => (element.value - details.localPosition).distance < 15.0,
         orElse: () => null);
-    MyChartPainter.selected.value = sel != null ? sel.key : null;
+    chart.selected.value = sel != null ? sel.key : null;
   }
 }

@@ -33,60 +33,77 @@ class _MyHomePageState extends State<MyHomePage> {
   List<Series> series;
   Random random = Random();
 
-  Series generateSeries(String name, SeriesType type) {
+  Series generateSeries(String name, SeriesType type,
+      {bool secondary = false, Color colors = Colors.red, bool fill = false}) {
     return Series(
         List.generate(
-            10,
-            (index) => Data(
-                DateTime.now().subtract(Duration(
-                    hours: random.nextInt(16), minutes: random.nextInt(30))),
-                random.nextDouble(),
-                color: index == 3 ? Colors.black : null))
-        /* [
-          Data(
-              DateTime.parse('2021-01-11 16:29:47.355589'), 0.7329044472692887),
-          Data(
-              DateTime.parse('2021-01-11 16:33:17.355592'), 0.5708143077340662),
-          Data(DateTime.parse('2021-01-11 16:42:47.355493'), 0.7528595474568435)
-        ] */
-        ,
+          10,
+          (index) => Data(
+              DateTime.now().subtract(Duration(
+                  hours: random.nextInt(16), minutes: random.nextInt(30))),
+              random.nextDouble(),
+              color: index == 3 ? Colors.black : null),
+        ),
         name,
+        secondaryAxis: secondary,
         type: type,
-        color: Colors.red);
+        fill: fill,
+        color: colors);
   }
 
   @override
   Widget build(BuildContext context) {
     series = [
-      generateSeries('test', SeriesType.line),
-      generateSeries('name', SeriesType.noValue)
-    ]
-        /* [
-          Data(
-              DateTime.parse('2021-01-11 16:29:47.355589'), 0.7329044472692887),
-          Data(
-              DateTime.parse('2021-01-11 16:33:17.355592'), 0.5708143077340662),
-          Data(DateTime.parse('2021-01-11 16:42:47.355493'), 0.7528595474568435)
-        ] */
-        ;
+      generateSeries('test', SeriesType.line, fill: true),
+      generateSeries('test2', SeriesType.line, colors: Colors.black),
+      generateSeries('name', SeriesType.noValue, colors: Colors.blue),
+      generateSeries('noval', SeriesType.noValue, colors: Colors.grey),
+      generateSeries('secondaria', SeriesType.stem,
+          secondary: true, colors: Colors.green)
+    ];
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
       ),
-      body: Center(
-          child: AspectRatio(
-        aspectRatio: 16 / 9,
-        child: Chart(
-          seriesList: series,
-          ranges: [
-            Range(top: series.first.max / 2, bottom: series.first.min * 2),
-            Range(
-                start: series.first.start.add(Duration(minutes: 5)),
-                end: series.first.end.subtract(Duration(minutes: 5)),
-                color: Colors.blue.shade200, xLabel: true, yLabel: true)
-          ],
-        ),
-      )),
+      body: Column(
+        children: [
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: Chart(
+              seriesList: [series[0], series[2], series[3]],
+              measureUnit: 'unità',
+              title: "primo",
+            ),
+          ),
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: Chart(
+              seriesList: [series[1]],
+              ranges: [
+                Range(
+                    top: series.first.max / 2,
+                    bottom: series.first.min * 2,
+                    yLabel: true),
+                Range(
+                  start: series.first.start
+                      .add(Duration(minutes: random.nextInt(60))),
+                  end: series.first.end
+                      .subtract(Duration(hours: random.nextInt(4))),
+                  color: Colors.blue.shade200,
+                  xLabel: true,
+                )
+              ],
+            ),
+          ),
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: Chart(
+              seriesList: [series[1], series[4]],
+              secondaryMeasureUnit: 'passi',
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

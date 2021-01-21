@@ -9,11 +9,31 @@ class Series {
   final Color color;
   final bool fill;
   final SeriesType type;
+  final bool secondaryAxis;
+
+  Series copyWith(
+      {Color color,
+      List<Data> values,
+      String name,
+      bool fill,
+      SeriesType type,
+      bool secondaryAxis}) {
+    return Series(values ?? this.values, name ?? this.name,
+        color: color ?? this.color,
+        fill: fill ?? this.fill,
+        type: type ?? this.type,
+        secondaryAxis: secondaryAxis ?? this.secondaryAxis);
+  }
 
   Series(List<Data> val, this.name,
-      {Color color, this.fill = false, this.type = SeriesType.line})
+      {Color color,
+      this.fill = false,
+      this.type = SeriesType.line,
+      this.secondaryAxis = false})
       : values = val..sort((a, b) => a.time.compareTo(b.time)),
-        this.color = color ?? Color(Colors.blue.value);
+        this.color = color ?? Color(Colors.blue.value),
+        assert(!(secondaryAxis && type == SeriesType.noValue),
+            !(fill && (type == SeriesType.noValue || type == SeriesType.dot)));
 
   num get min => values
       .map<num>((e) => e.value)
@@ -36,18 +56,6 @@ class Series {
     return values.map((e) => "${e.time} - ${e.value}\n").toList().toString() +
         " range: $rangeX";
   }
-
-  Series copyWith(
-      {Color color,
-      List<Data> values,
-      String name,
-      bool fill,
-      SeriesType type}) {
-    return Series(values ?? this.values, name ?? this.name,
-        color: color ?? this.color,
-        fill: fill ?? this.fill,
-        type: type ?? this.type);
-  }
 }
 
 class Data {
@@ -58,7 +66,7 @@ class Data {
 
   @override
   String toString() {
-    return DateFormat.Hms().format(time) + ' ' + value.toStringAsFixed(3);
+    return DateFormat.Hms().format(time) + ' - ' + value.toStringAsFixed(3);
   }
 
   bool isSame(Data other) => other != null
@@ -85,7 +93,8 @@ class Range {
       this.bottomLabel,
       this.topLabel,
       this.yLabel = false,
-      this.xLabel = false});
+      this.xLabel = false})
+      : assert(!yLabel || (yLabel && (top != null && bottom != null)));
 
   @override
   String toString() {
