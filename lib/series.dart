@@ -4,11 +4,22 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class Series {
+  /// list of [Data] of the series
   final List<Data> values;
+
+  /// name of this series, should be unique
   final String name;
+
+  /// color of this series
   final Color color;
+
+  /// whether the series should have below area filled
   final bool fill;
+
+  /// type of this series, default [SeriesType.line]
   final SeriesType type;
+
+  /// whether this series should be plotted on secondary axis, default [false]
   final bool secondaryAxis;
 
   Series copyWith(
@@ -59,8 +70,13 @@ class Series {
 }
 
 class Data {
+  /// time of this data point
   final DateTime time;
+
+  /// numeric value of this data point
   final num value;
+
+  /// custom color of this data point. It overrides the color of the [Series] containing this point
   final Color color;
   Data(this.time, this.value, {this.color});
 
@@ -75,14 +91,28 @@ class Data {
 }
 
 class Range {
+  /// top margin of this range
   num top;
-  String topLabel;
+
+  /// top label of this range
+  /* String topLabel;
+  /// bottom margin of this range */
   num bottom;
-  String bottomLabel;
+  /* /// bottom label of this range
+  String bottomLabel; */
+  /// whether to display this label on y margins
   bool yLabel;
+
+  /// start date of this range
   DateTime start;
+
+  /// whether to display this label on x margins
   bool xLabel;
+
+  /// end date of this range
   DateTime end;
+
+  /// color of this range
   Color color;
   Range(
       {this.top,
@@ -90,8 +120,8 @@ class Range {
       this.end,
       this.start,
       this.color = Colors.grey,
-      this.bottomLabel,
-      this.topLabel,
+      //this.bottomLabel,
+      //this.topLabel,
       this.yLabel = false,
       this.xLabel = false})
       : assert(!yLabel || (yLabel && (top != null && bottom != null)));
@@ -102,4 +132,16 @@ class Range {
   }
 }
 
-enum SeriesType { line, stem, dot, noValue }
+enum SeriesType {
+  /// plot [Data] as connected line
+  line,
+
+  /// plot [Data] as stem
+  stem,
+
+  /// plot [Data] as a single point
+  dot,
+
+  /// plot only the time of the [Data] points below the graph
+  noValue
+}

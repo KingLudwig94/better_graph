@@ -8,17 +8,41 @@ import 'package:flutter/material.dart' hide Viewport, Step;
 class Chart extends StatefulWidget {
   Chart({
     Key key,
+
+    /// list of [Series] to plot
     this.seriesList,
+
+    /// WIP custom viewport
     this.viewport,
+
+    /// ranges to plot
     this.ranges,
+
+    /// title of the chart
     this.title,
+
+    /// background color of the graph
     this.bgColor,
+
+    /// unit of measures for the primary axis
     this.measureUnit,
+
+    /// unit of measures for the secondary axis
     this.secondaryMeasureUnit,
+
+    /// whether to show a legend below the graph, required to show info on the selected [Data]
     this.showLegend = true,
+
+    /// whether to allow pan gesture
     this.pan = true,
+
+    /// whether to allow zoom gesture (up/down drag on plot)
     this.zoom = true,
+
+    /// whether to allow selection gesture
     this.select = true,
+
+    /// whether to have the legend on two colums
     this.twoColLegend = true,
   })  : series = seriesList.where((e) => !e.secondaryAxis).toList(),
         secondarySeries =
