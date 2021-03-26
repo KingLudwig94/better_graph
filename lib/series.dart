@@ -16,56 +16,83 @@ class Series {
   /// whether the series should have below area filled
   final bool fill;
 
+  final Color? fillColor;
+
+  final List<Data>? lowerLimit;
+
   /// type of this series, default [SeriesType.line]
   final SeriesType type;
 
   /// whether this series should be plotted on secondary axis, default [false]
   final bool secondaryAxis;
 
-  Series copyWith(
-      {Color color,
-      List<Data> values,
-      String name,
-      bool fill,
-      SeriesType type,
-      bool secondaryAxis}) {
-    return Series(values ?? this.values, name ?? this.name,
-        color: color ?? this.color,
-        fill: fill ?? this.fill,
-        type: type ?? this.type,
-        secondaryAxis: secondaryAxis ?? this.secondaryAxis);
-  }
+  /// size of data visualization paint
+  final double drawSize;
 
-  Series(List<Data> val, this.name,
-      {Color color,
+  late List<Data> _allPoints;
+
+  Series(
+      {required List<Data> val,
+      required this.name,
+      Color? color,
       this.fill = false,
+      this.fillColor,
+      this.lowerLimit,
       this.type = SeriesType.line,
-      this.secondaryAxis = false})
+      this.secondaryAxis = false,
+      this.drawSize = 3.0})
       : values = val..sort((a, b) => a.time.compareTo(b.time)),
         this.color = color ?? Color(Colors.blue.value),
         assert(!(secondaryAxis && type == SeriesType.noValue),
-            !(fill && (type == SeriesType.noValue || type == SeriesType.dot)));
+            !(fill && (type == SeriesType.noValue || type == SeriesType.dot))) {
+    _allPoints = List.from(values);
+    if (lowerLimit != null) {
+      lowerLimit!.sort((a, b) => a.time.compareTo(b.time));
+      _allPoints.addAll(lowerLimit!);
+    }
+  }
 
-  num get min => values
+  Series copyWith(
+      {Color? color,
+      List<Data>? values,
+      List<Data>? lowerLimit,
+      String? name,
+      bool? fill,
+      SeriesType? type,
+      bool? secondaryAxis,
+      double? drawSize}) {
+    return Series(
+        val: values ?? this.values,
+        lowerLimit: lowerLimit ?? this.lowerLimit,
+        name: name ?? this.name,
+        color: color ?? this.color,
+        fill: fill ?? this.fill,
+        fillColor: fillColor ?? this.fillColor,
+        type: type ?? this.type,
+        secondaryAxis: secondaryAxis ?? this.secondaryAxis,
+        drawSize: drawSize ?? this.drawSize);
+  }
+
+  num get min => _allPoints
       .map<num>((e) => e.value)
       .reduce((value, element) => math.min(value, element));
-  num get max => values
+  num get max => _allPoints
       .map<num>((e) => e.value)
       .reduce((value, element) => math.max(value, element));
   num get rangeY =>
-      values
+      _allPoints
           .map<num>((e) => e.value)
           .reduce((value, element) => math.max(value, element)) -
-      values
+      _allPoints
           .map<num>((e) => e.value)
           .reduce((value, element) => math.min(value, element));
-  Duration get rangeX => values.last.time.difference(values.first.time);
-  DateTime get start => values.first.time;
-  DateTime get end => values.last.time;
+  Duration get rangeX => _allPoints.last.time.difference(_allPoints.first.time);
+  DateTime get start => _allPoints.first.time;
+  DateTime get end => _allPoints.last.time;
 
   String toString() {
     return values.map((e) => "${e.time} - ${e.value}\n").toList().toString() +
-        " range: $rangeX";
+        " rangeX: $rangeX";
   }
 }
 
@@ -77,40 +104,55 @@ class Data {
   final num value;
 
   /// custom color of this data point. It overrides the color of the [Series] containing this point
-  final Color color;
-  Data(this.time, this.value, {this.color});
+  final Color? color;
+
+  /// custom description to be shown in tooltip
+  final String? description;
+
+  /// original data object in its original class
+  final dynamic originalData;
+
+  Data(this.time, this.value,
+      {this.color, this.description, this.originalData});
 
   @override
   String toString() {
+    return DateFormat.Hms().format(time) +
+        ' - ' +
+        value.toStringAsFixed(3) +
+        (description != null ? ' - $description' : '');
+  }
+
+  String toValueString() {
     return DateFormat.Hms().format(time) + ' - ' + value.toStringAsFixed(3);
   }
 
-  bool isSame(Data other) => other != null
+  bool isSame(Data? other) => other != null
       ? this.time.isAtSameMomentAs(other.time) && this.value == other.value
       : false;
 }
 
 class Range {
   /// top margin of this range
-  num top;
+  num? top;
 
   /// top label of this range
   /* String topLabel;
   /// bottom margin of this range */
-  num bottom;
+  num? bottom;
   /* /// bottom label of this range
   String bottomLabel; */
   /// whether to display this label on y margins
   bool yLabel;
 
   /// start date of this range
-  DateTime start;
+  DateTime? start;
 
   /// whether to display this label on x margins
   bool xLabel;
 
   /// end date of this range
-  DateTime end;
+  DateTime? end;
 
   /// color of this range
   Color color;
@@ -124,7 +166,7 @@ class Range {
       //this.topLabel,
       this.yLabel = false,
       this.xLabel = false})
-      : assert(!yLabel || (yLabel && (top != null && bottom != null)));
+      : assert(!yLabel || (yLabel && (top != null || bottom != null)));
 
   @override
   String toString() {
@@ -136,8 +178,14 @@ enum SeriesType {
   /// plot [Data] as connected line
   line,
 
+  /// plot [Data] as connected line without value point
+  lineNoPoint,
+
   /// plot [Data] as stem
   stem,
+
+  /// plot [Data] as stem without value point
+  stemNoPoint,
 
   /// plot [Data] as a single point
   dot,
