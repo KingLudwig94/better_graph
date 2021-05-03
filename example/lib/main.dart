@@ -44,7 +44,7 @@ class _MyHomePageState extends State<MyHomePage> {
       (index) => Data(
           DateTime.now().subtract(Duration(
               hours: 1 * random.nextInt(32), minutes: random.nextInt(30))),
-          random.nextDouble(),
+          random.nextDouble()*100,
           color: index == 3 ? Colors.black : null,
           description: index % 2 == 0 ? 'prova nota' : null),
     );
@@ -53,8 +53,9 @@ class _MyHomePageState extends State<MyHomePage> {
         name: name,
         secondaryAxis: secondary,
         type: type,
-        lowerLimit:
-            low != null ? val.map((f) => Data(f.time, f.value - low)).toList() : null,
+        lowerLimit: low != null
+            ? val.map((f) => Data(f.time, f.value - low)).toList()
+            : null,
         fill: fill,
         color: colors);
   }
@@ -75,7 +76,7 @@ class _MyHomePageState extends State<MyHomePage> {
       generateSeries('low', SeriesType.line,
           colors: Colors.black, fill: true, low: .1)
     ];
-    print(series[5]);
+    print(series[0]);
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title!),
@@ -85,10 +86,12 @@ class _MyHomePageState extends State<MyHomePage> {
           AspectRatio(
             aspectRatio: 16 / 9,
             child: Chart(
-              seriesList: [series[5]],
-              // viewport: Viewport(max: 1, min: 0, start: DateTime(2021, 3, 3)),
+              seriesList: [series[0]],
+              //viewport: Viewport(max: 1, min: 0, start: DateTime(2021, 4, 25)),
               showTooltip: true,
+              measureUnit: 'mmol/L',
               secondaryMeasureUnit: 'passi',
+
               /* tooltip: (data, series) {
                 print(series.where((a) => a.values.contains(data))?.first?.name);
                 return Container(

@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:better_graph/series.dart';
 import 'package:better_graph/viewport.dart';
 import 'package:flutter/material.dart' hide Viewport, Step;
@@ -16,6 +18,10 @@ class MyChartPainter extends CustomPainter {
     this.selected,
     this.measureUnit,
     this.secondaryMeasureUnit,
+    this.leftMargin = 54,
+    this.rightMargin = 54,
+    this.bottomMargin = 54,
+    this.topMargin = 54,
     required this.twoColLegend,
   }) : super(repaint: selected) {
     seriesList = seriesList.map((series) {
@@ -36,7 +42,7 @@ class MyChartPainter extends CustomPainter {
                         : series.values.length
                     : series.values.length)
             .toList();
-      return series = series.copyWith(
+      return series.copyWith(
         values: series.values
             .getRange(
                 s > 0 ? s - 1 : 0,
@@ -49,6 +55,12 @@ class MyChartPainter extends CustomPainter {
         lowerLimit: low,
       );
     }).toList();
+    insideNoValSeries = seriesList
+        .where((element) => element.type == SeriesType.noValueInside)
+        .toList();
+    seriesList = seriesList
+        .where((element) => element.type != SeriesType.noValueInside)
+        .toList();
     secondarySeries = secondarySeries!.map((series) {
       Series show = series;
       int s = show.values.indexWhere((element) => viewport.start != null
@@ -56,7 +68,7 @@ class MyChartPainter extends CustomPainter {
           : true);
       int e = show.values.indexWhere((element) =>
           viewport.end != null ? !element.time.isBefore(viewport.end!) : false);
-      return series = series.copyWith(
+      return series.copyWith(
         values: series.values
             .getRange(
                 s > 0 ? s - 1 : 0,
@@ -68,6 +80,17 @@ class MyChartPainter extends CustomPainter {
             .toList(),
       );
     }).toList();
+    ranges = ranges!
+        .where((range) => (!((range.start!.isBefore(viewport.start!) &&
+                range.end!.isBefore(viewport.start!)) ||
+            (range.start!.isAfter(viewport.end!) &&
+                range.end!.isAfter(viewport.end!)))))
+        .map((range) {
+      return range.copyWith(
+          start:
+              range.start!.isBefore(viewport.start!) ? viewport.start! : null,
+          end: range.end!.isAfter(viewport.end!) ? viewport.end! : null);
+    }).toList();
     _setLabelFormat();
     //TODO: fix no data in rangeX
   }
@@ -78,6 +101,7 @@ class MyChartPainter extends CustomPainter {
   Viewport viewport;
   List<Series> seriesList;
   List<Series>? secondarySeries;
+  late List<Series> insideNoValSeries;
   late double chartW;
   late double chartH;
   late double yRatio;
@@ -90,6 +114,11 @@ class MyChartPainter extends CustomPainter {
   late Paint chBg;
   late Paint dpPaint;
   late Paint dpPaintFill;
+  final double leftMargin;
+  final double rightMargin;
+  final double topMargin;
+  final double bottomMargin;
+
   Paint dpTransparent = Paint()..color = Colors.transparent;
   TextStyle titleStyle = TextStyle(
     color: Colors.black,
@@ -106,6 +135,7 @@ class MyChartPainter extends CustomPainter {
   );
   double labelOffset = 7.0;
   double offsetStep = 14.0;
+  double insideNoValOffset = -7.0;
   late String? labelFormat;
   String? title;
   String? measureUnit;
@@ -114,8 +144,8 @@ class MyChartPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     points = Map();
-    chartW = size.width - 108;
-    chartH = size.height - 108;
+    chartW = size.width - (leftMargin + rightMargin);
+    chartH = size.height - (topMargin + bottomMargin);
 
     viewport.xPerStep = chartW / viewport.stepCount;
     yRatio = (chartH / viewport.rangeY);
@@ -129,8 +159,7 @@ class MyChartPainter extends CustomPainter {
     drawChart(canvas, center);
   }
 
-  void drawFrame(Canvas canvas, Offset center, Size size) {
-    var w = 600.0;
+/*   void drawFrame(Canvas canvas, Offset center, Size size) {
     var rect =
         Rect.fromCenter(center: center, width: size.width, height: size.height);
     // fill rect
@@ -142,7 +171,7 @@ class MyChartPainter extends CustomPainter {
       ..strokeWidth = 10.0
       ..style = PaintingStyle.stroke;
     canvas.drawRect(rect, border);
-  }
+  } */
 
   void drawChart(Canvas canvas, Offset center) {
     chBorder = Paint()
@@ -151,7 +180,7 @@ class MyChartPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
     chBg = Paint()..color = bgColor ?? Colors.white;
 
-    var rect = Rect.fromCenter(center: center, width: chartW, height: chartH);
+    var rect = Rect.fromLTWH(leftMargin, topMargin, chartW, chartH);
     // draw background
     canvas.drawRect(rect, chBg);
     // draw chart borders
@@ -178,9 +207,8 @@ class MyChartPainter extends CustomPainter {
       if (series.type == SeriesType.noValue)
         //draw novalue data
         drawNoValPoints(canvas, dpPaint, rect, series);
-      else
-        // draw data points
-        drawDataPoints(canvas, dpPaint, rect, series);
+      // draw data points
+      drawDataPoints(canvas, dpPaint, rect, series);
     });
     if (secondarySeries!.isNotEmpty)
       secondarySeries!.forEach((series) {
@@ -201,6 +229,8 @@ class MyChartPainter extends CustomPainter {
         // draw data points
         drawDataPoints(canvas, dpPaint, rect, series);
       });
+    if (insideNoValSeries.isNotEmpty)
+      drawNoValInsidePoints(canvas, dpPaint, rect, insideNoValSeries);
     // draw labels
     drawXLabels(canvas, rect, labelStyle);
     drawYLabels(canvas, rect, labelStyle);
@@ -231,7 +261,7 @@ class MyChartPainter extends CustomPainter {
   }
 
   void drawDataPoints(Canvas canvas, dpPaint, Rect rect, Series series) {
-    if (series == null && series.values.isNotEmpty) return;
+    if (series.values.isEmpty) return;
     // this ratio is the number of y pixels per unit data
     var p = Path();
     var x = rect.left;
@@ -371,7 +401,6 @@ class MyChartPainter extends CustomPainter {
     } else if (viewport.step == Step.Day) {
       return diff.inSeconds.toDouble() / 86400;
     } else if (viewport.step == Step.Hour) {
-      var di = d.minute - prev.minute;
       return diff.inSeconds.toDouble() / 3600;
     } else {
       return diff.inSeconds.toDouble() / 60;
@@ -380,14 +409,28 @@ class MyChartPainter extends CustomPainter {
 
   _drawPoint(
       Canvas canvas, Rect rect, double x, double y, Data e, Series series) {
-    canvas.drawCircle(
-      Offset(x, y),
-      e.isSame(selected?.value) ? 7 : 4,
-      Paint()
-        ..style = PaintingStyle.fill
-        ..strokeWidth = 2
-        ..color = e.color ?? series.color,
-    );
+    if (e.pointType == PointType.circle)
+      canvas.drawCircle(
+        Offset(x, y),
+        e.isSame(selected?.value) ? 7 : 4,
+        Paint()
+          ..style = PaintingStyle.fill
+          ..strokeWidth = 2
+          ..color = e.color ?? series.color,
+      );
+    else if (e.pointType == PointType.square)
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+            Rect.fromCircle(
+                center: Offset(x, y),
+                radius: e.isSame(selected?.value) ? 7 : 4),
+            Radius.zero),
+        Paint()
+          ..style = PaintingStyle.fill
+          ..strokeWidth = 2
+          ..color = e.color ?? series.color,
+      );
+
     if (e.isSame(selected?.value)) {
       canvas.drawLine(
           Offset(x, rect.bottom),
@@ -411,10 +454,26 @@ class MyChartPainter extends CustomPainter {
     textPainter.paint(canvas, position);
   }
 
-  double measureText(String text, TextStyle style, double width) {
+  drawVerticalText(Canvas canvas, Offset position, double width,
+      TextStyle style, String text) {
+    canvas.save();
+    canvas.translate(position.dx + style.fontSize!, position.dy);
+    canvas.rotate(3.14 / 2);
     final textSpan = TextSpan(text: text, style: style);
     final textPainter =
         TextPainter(text: textSpan, textDirection: TextDirection.ltr);
+    textPainter.layout(minWidth: 0);
+    textPainter.paint(canvas, Offset.zero);
+    canvas.restore();
+  }
+
+  double measureText(String text, TextStyle style, double width) {
+    final textSpan = TextSpan(text: text, style: style);
+    final textPainter = TextPainter(
+      text: textSpan,
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+    );
     textPainter.layout(minWidth: 0, maxWidth: width);
     return textPainter.width;
   }
@@ -470,15 +529,33 @@ class MyChartPainter extends CustomPainter {
   }
 
   void drawYLabels(Canvas canvas, Rect rect, TextStyle labelStyle) {
-    Offset posTop = rect.topLeft + Offset(-40, 0);
-    Offset posBottom = rect.bottomLeft + Offset(-40, -10);
+    Offset posTop = rect.topLeft + Offset(-leftMargin, 0);
+    Offset posBottom = rect.bottomLeft + Offset(-leftMargin, -10);
+
     //draw y Label
-    drawText(canvas, posBottom, 40, labelStyle,
-        viewport.min!.toStringAsPrecision(4)); // print min value
-    drawText(canvas, posTop, 40, labelStyle,
-        viewport.max!.toStringAsPrecision(4)); // print max value
+    int prec = _findMinPrecision(
+        [viewport.min!, viewport.max!], leftMargin - 5, labelStyle);
+    drawText(canvas, posBottom, leftMargin - 5, labelStyle,
+        viewport.min!.toStringAsPrecision(prec)); // print min value
+    drawText(canvas, posTop, leftMargin - 5, labelStyle,
+        viewport.max!.toStringAsPrecision(prec)); // print max value
     if (measureUnit != null)
-      drawText(canvas, posTop + Offset(0, -20), 40, labelStyle, measureUnit!);
+      drawText(canvas, posTop + Offset(0, -labelStyle.fontSize!),
+          leftMargin - 5, labelStyle, measureUnit!);
+  }
+
+  int _findMinPrecision(List<num> values, double width, TextStyle style) {
+    int prec = 1;
+    values.forEach((element) {
+      int p = prec;
+      while (measureText(viewport.max!.toStringAsPrecision(p), style, width) <
+          width) {
+        p++;
+      }
+      if (prec < p - 1) prec = p - 1;
+    });
+
+    return prec;
   }
 
   void drawSecondaryYLabels(
@@ -501,8 +578,11 @@ class MyChartPainter extends CustomPainter {
   void drawLegend(Canvas canvas, Rect rect, TextStyle legendStyle) {
     int i = 1;
     bool col0 = true;
-    int nS = seriesList.length + secondarySeries!.length;
-    List<Series> merge = List.from(seriesList)..addAll(secondarySeries!);
+    int nS =
+        seriesList.length + secondarySeries!.length + insideNoValSeries.length;
+    List<Series> merge = List.from(seriesList)
+      ..addAll(secondarySeries!)
+      ..addAll(insideNoValSeries);
     merge.forEach((element) {
       double x = col0 ? 0 : 4 / 5 * rect.bottomCenter.dx;
       double y = labelOffset + 3 + offsetStep / 2 + offsetStep * i;
@@ -604,6 +684,25 @@ class MyChartPainter extends CustomPainter {
               element.top!.toStringAsPrecision(4));
         }
       }
+      if (element.icon != null) {
+        final icon = element.icon!.icon!;
+        TextPainter textPainter = TextPainter(textDirection: TextDirection.ltr);
+        textPainter.text = TextSpan(
+          text: String.fromCharCode(icon.codePoint),
+          style: TextStyle(
+            color: Colors.black,
+            fontFamily: icon.fontFamily,
+            package: icon
+                .fontPackage, // This line is mandatory for external icon packs
+          ),
+        );
+        textPainter.layout();
+        textPainter.paint(canvas, Offset(left, bottom - 2 * labelOffset));
+      }
+      if (element.description != null) {
+        drawVerticalText(
+            canvas, Offset(left, top), 40, labelStyle, element.description!);
+      }
     });
   }
 
@@ -614,8 +713,15 @@ class MyChartPainter extends CustomPainter {
   bool shouldRebuildSemantics(MyChartPainter oldDelegate) => true;
 
   void drawNoValPoints(Canvas canvas, Paint dpPaint, Rect rect, Series series) {
-    double offset = labelOffset;
-    labelOffset += offsetStep;
+    bool below = series.type == SeriesType.noValue;
+    double offset;
+    if (below) {
+      offset = labelOffset;
+      labelOffset += offsetStep;
+    } else {
+      offset = insideNoValOffset;
+      insideNoValOffset -= offsetStep;
+    }
     var fraction;
     var x = rect.left;
     bool first = true;
@@ -633,9 +739,43 @@ class MyChartPainter extends CustomPainter {
     });
     points[series.name]!.forEach((key, value) =>
         _drawPoint(canvas, rect, value.dx, rect.bottom + offset, key, series));
-    canvas.drawLine(
-        Offset(rect.left, rect.bottom + offset + 7),
-        Offset(rect.right, rect.bottom + offset + 7),
-        Paint()..color = Colors.black);
+    if (below)
+      canvas.drawLine(
+          Offset(rect.left, rect.bottom + offset + 7),
+          Offset(rect.right, rect.bottom + offset + 7),
+          Paint()..color = Colors.black);
+  }
+
+  void drawNoValInsidePoints(
+      Canvas canvas, Paint dpPaint, Rect rect, List<Series> series) {
+    double offset = insideNoValOffset;
+
+    var fraction;
+    var x = rect.left;
+    bool first = true;
+    Map<double, List<List<dynamic>>> fractions =
+        Map(); //fraction, [{Data, Series}]
+    series.forEach((s) {
+      points[s.name] = {};
+      s.values.forEach((element) {
+        double fraction = _calculateFraction(element.time, viewport.start!);
+        fractions[fraction] = fractions.containsKey(fraction)
+            ? List.from(fractions[fraction]!..add([element, s]))
+            : [
+                [element, s]
+              ];
+      });
+    });
+    fractions.forEach((frac, list) {
+      x = rect.left + viewport.xPerStep! * frac;
+      if (x - rect.right < 0 && x - rect.left > 0) {
+        list.asMap().forEach((i, element) {
+          offset = insideNoValOffset - i * offsetStep;
+          _addPoint(rect, x, -offset, element[0], (element[1] as Series).name);
+          _drawPoint(
+              canvas, rect, x, rect.bottom + offset, element[0], element[1]);
+        });
+      }
+    });
   }
 }

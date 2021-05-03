@@ -112,8 +112,12 @@ class Data {
   /// original data object in its original class
   final dynamic originalData;
 
+  final PointType pointType;
   Data(this.time, this.value,
-      {this.color, this.description, this.originalData});
+      {this.color,
+      this.description,
+      this.originalData,
+      this.pointType = PointType.circle});
 
   @override
   String toString() {
@@ -156,21 +160,53 @@ class Range {
 
   /// color of this range
   Color color;
+
+  /// description to be shown inside the range
+  String? description;
+
+  /// icon to be shown inside the range
+  Icon? icon;
+
   Range(
       {this.top,
       this.bottom,
       this.end,
       this.start,
       this.color = Colors.grey,
+      this.icon,
       //this.bottomLabel,
       //this.topLabel,
       this.yLabel = false,
-      this.xLabel = false})
-      : assert(!yLabel || (yLabel && (top != null || bottom != null)));
+      this.xLabel = false,
+      this.description})
+      : assert(!yLabel || (yLabel && (top != null || bottom != null))),
+        assert(!(icon != null && description != null));
 
   @override
   String toString() {
     return 'X: $start - $end\n Y: $top - $bottom';
+  }
+
+  Range copyWith(
+      {num? top,
+      num? bottom,
+      DateTime? end,
+      DateTime? start,
+      Color? color,
+      Icon? icon,
+      bool? yLabel,
+      bool? xLabel,
+      String? description}) {
+    return Range(
+        top: top ?? this.top,
+        bottom: bottom ?? this.bottom,
+        end: end ?? this.end,
+        start: start ?? this.start,
+        color: color ?? this.color,
+        icon: icon ?? this.icon,
+        yLabel: yLabel ?? this.yLabel,
+        xLabel: xLabel ?? this.xLabel,
+        description: description ?? this.description);
   }
 }
 
@@ -190,6 +226,11 @@ enum SeriesType {
   /// plot [Data] as a single point
   dot,
 
-  /// plot only the time of the [Data] points below the graph
-  noValue
+  /// plot only the time of the [Data] points BELOW the graph
+  noValue,
+
+  /// plot only the time of the [Data] points INSIDE the graph
+  noValueInside
 }
+
+enum PointType { circle, square }

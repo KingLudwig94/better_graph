@@ -45,7 +45,13 @@ class Chart extends StatefulWidget {
 
     /// widget to show selected data point info
     Widget Function(Data data, Series series)? tooltip,
+
+    /// wheter to show the tooltip on data selection
     this.showTooltip = false,
+    this.leftMargin = 54,
+    this.rightMargin = 54,
+    this.topMargin = 54,
+    this.bottomMargin = 54,
     Key? key,
   })  : series = seriesList.where((e) => !e.secondaryAxis).toList(),
         secondarySeries =
@@ -79,6 +85,10 @@ class Chart extends StatefulWidget {
   final bool twoColLegend;
   final bool showTooltip;
   final Widget Function(Data data, Series series) tooltip;
+  final double? leftMargin;
+  final double? rightMargin;
+  final double? topMargin;
+  final double? bottomMargin;
   @override
   _ChartState createState() => _ChartState();
 }
@@ -154,7 +164,11 @@ class _ChartState extends State<Chart> {
         secondaryMeasureUnit: widget.secondaryMeasureUnit,
         measureUnit: widget.measureUnit,
         twoColLegend: widget.twoColLegend,
-        selected: _selected);
+        selected: _selected,
+        leftMargin: widget.leftMargin!,
+        rightMargin: widget.rightMargin!,
+        topMargin: widget.topMargin!,
+        bottomMargin: widget.bottomMargin!);
 
     return LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
@@ -229,8 +243,8 @@ class _ChartState extends State<Chart> {
                       .reduce((value, element) => max(value, element)) +
                   1)) return; */
 
-      if (dd! < 0 && chart!.points.values.every((element) => element.length < 3))
-        return;
+      if (dd! < 0 &&
+          chart!.points.values.every((element) => element.length < 3)) return;
 
       startTime = startTime1;
       endTime = endTime1;
