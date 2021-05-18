@@ -132,7 +132,11 @@ class Data {
   }
 
   bool isSame(Data? other) => other != null
-      ? this.time.isAtSameMomentAs(other.time) && this.value == other.value
+      ? this.originalData != null && other.originalData != null
+          ? this.originalData == other.originalData
+              ? true
+              : false
+          : this.time.isAtSameMomentAs(other.time) && this.value == other.value
       : false;
 }
 

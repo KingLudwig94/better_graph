@@ -175,12 +175,12 @@ class _ChartState extends State<Chart> {
       return Stack(
         children: [
           Container(
+            constraints: constraints,
             child: GestureDetector(
               onHorizontalDragUpdate: handleHorizontalDrag,
               onVerticalDragUpdate: handleVerticalDrag,
               onTapUp: handleTap,
               child: CustomPaint(
-                child: Container(),
                 painter: chart,
               ),
             ),
@@ -297,7 +297,7 @@ class _ChartState extends State<Chart> {
         padding: const EdgeInsets.all(6.0),
         child: ConstrainedBox(
             constraints: BoxConstraints.loose(Size(
-              constraints.maxWidth / 3,
+              constraints.maxWidth / 2,
               constraints.maxHeight / 2,
             )),
             child: widget.tooltip(

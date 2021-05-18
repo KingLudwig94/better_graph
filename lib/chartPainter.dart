@@ -42,18 +42,20 @@ class MyChartPainter extends CustomPainter {
                         : series.values.length
                     : series.values.length)
             .toList();
-      return series.copyWith(
-        values: series.values
-            .getRange(
-                s > 0 ? s - 1 : 0,
-                e >= 0
-                    ? e < series.values.length - 1
-                        ? e + 1
-                        : series.values.length
-                    : series.values.length)
-            .toList(),
-        lowerLimit: low,
-      );
+      return s == -1 && e == -1
+          ? series.copyWith(values: [])
+          : series.copyWith(
+              values: series.values
+                  .getRange(
+                      s > 0 ? s - 1 : 0,
+                      e >= 0
+                          ? e < series.values.length - 1
+                              ? e + 1
+                              : series.values.length
+                          : series.values.length)
+                  .toList(),
+              lowerLimit: low,
+            );
     }).toList();
     insideNoValSeries = seriesList
         .where((element) => element.type == SeriesType.noValueInside)
@@ -68,17 +70,19 @@ class MyChartPainter extends CustomPainter {
           : true);
       int e = show.values.indexWhere((element) =>
           viewport.end != null ? !element.time.isBefore(viewport.end!) : false);
-      return series.copyWith(
-        values: series.values
-            .getRange(
-                s > 0 ? s - 1 : 0,
-                e >= 0
-                    ? e < series.values.length - 1
-                        ? e + 1
-                        : series.values.length
-                    : series.values.length)
-            .toList(),
-      );
+      return s == -1 && e == -1
+          ? series.copyWith(values: [])
+          : series.copyWith(
+              values: series.values
+                  .getRange(
+                      s > 0 ? s - 1 : 0,
+                      e >= 0
+                          ? e < series.values.length - 1
+                              ? e + 1
+                              : series.values.length
+                          : series.values.length)
+                  .toList(),
+            );
     }).toList();
     ranges = ranges!
         .where((range) => (!((range.start!.isBefore(viewport.start!) &&
@@ -133,7 +137,7 @@ class MyChartPainter extends CustomPainter {
     color: Colors.black,
     fontSize: 13,
   );
-  double labelOffset = 7.0;
+  late double labelOffset;
   double offsetStep = 14.0;
   double insideNoValOffset = -7.0;
   late String? labelFormat;
@@ -143,6 +147,7 @@ class MyChartPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    labelOffset = 7.0;
     points = Map();
     chartW = size.width - (leftMargin + rightMargin);
     chartH = size.height - (topMargin + bottomMargin);
@@ -540,8 +545,8 @@ class MyChartPainter extends CustomPainter {
     drawText(canvas, posTop, leftMargin - 5, labelStyle,
         viewport.max!.toStringAsPrecision(prec)); // print max value
     if (measureUnit != null)
-      drawText(canvas, posTop + Offset(0, -labelStyle.fontSize!),
-          leftMargin - 5, labelStyle, measureUnit!);
+      drawText(canvas, posTop + Offset(0, -labelStyle.fontSize! - 3),
+          rect.width / 3, labelStyle, measureUnit!);
   }
 
   int _findMinPrecision(List<num> values, double width, TextStyle style) {
@@ -563,16 +568,31 @@ class MyChartPainter extends CustomPainter {
     Rect rect,
     TextStyle labelStyle,
   ) {
-    Offset posTop = rect.topRight + Offset(10, 0);
-    Offset posBottom = rect.bottomRight + Offset(10, -10);
+    Offset posTop = rect.topRight + Offset(5, 0);
+    Offset posBottom = rect.bottomRight + Offset(5, -10);
     //draw y Label
-    drawText(canvas, posBottom, 40, labelStyle,
-        viewport.secondaryMin!.toStringAsPrecision(4)); // print min value
-    drawText(canvas, posTop, 40, labelStyle,
-        viewport.secondaryMax!.toStringAsPrecision(4)); // print max value
-    if (secondaryMeasureUnit != null)
-      drawText(canvas, posTop + Offset(0, -20), 40, labelStyle,
+    int prec = _findMinPrecision(
+        [viewport.secondaryMin!, viewport.secondaryMax!],
+        rightMargin - 5,
+        labelStyle);
+    drawText(canvas, posBottom, rightMargin - 5, labelStyle,
+        viewport.secondaryMin!.toStringAsPrecision(prec)); // print min value
+    drawText(canvas, posTop, rightMargin - 5, labelStyle,
+        viewport.secondaryMax!.toStringAsPrecision(prec)); // print max value
+    if (secondaryMeasureUnit != null) {
+      drawText(
+          canvas,
+          rect.topRight +
+              Offset(
+                  rightMargin -
+                      7 -
+                      measureText(
+                          secondaryMeasureUnit!, labelStyle, rect.width / 3),
+                  -labelStyle.fontSize! - 3),
+          measureText(secondaryMeasureUnit!, labelStyle, rect.width / 3),
+          labelStyle,
           secondaryMeasureUnit!);
+    }
   }
 
   void drawLegend(Canvas canvas, Rect rect, TextStyle legendStyle) {
@@ -595,10 +615,10 @@ class MyChartPainter extends CustomPainter {
           rect.bottomLeft + Offset(x + 10, y - offsetStep / 2),
           double.maxFinite,
           legendStyle,
-          element.name +
+          element.name /* +
               (element.values.contains(selected!.value)
                   ? ': ' + selected!.value!.toValueString()
-                  : ''));
+                  : '') */);
       i++;
       if (twoColLegend) if (!(i < nS / 2 + 1)) {
         col0 = false;
