@@ -198,23 +198,6 @@ class MyChartPainter extends CustomPainter {
           title!);
     drawRanges(canvas, rect);
 
-    seriesList.forEach((series) {
-      points[series.name] = {};
-      dpPaint = Paint()
-        ..color = series.color
-        ..strokeWidth = series.drawSize
-        ..style = PaintingStyle.stroke;
-
-      dpPaintFill = Paint()
-        ..color = series.fillColor ?? series.color.withAlpha(30)
-        ..strokeWidth = series.drawSize
-        ..style = PaintingStyle.fill;
-      if (series.type == SeriesType.noValue)
-        //draw novalue data
-        drawNoValPoints(canvas, dpPaint, rect, series);
-      // draw data points
-      drawDataPoints(canvas, dpPaint, rect, series);
-    });
     if (secondarySeries!.isNotEmpty)
       secondarySeries!.forEach((series) {
         points[series.name] = {};
@@ -234,6 +217,23 @@ class MyChartPainter extends CustomPainter {
         // draw data points
         drawDataPoints(canvas, dpPaint, rect, series);
       });
+    seriesList.forEach((series) {
+      points[series.name] = {};
+      dpPaint = Paint()
+        ..color = series.color
+        ..strokeWidth = series.drawSize
+        ..style = PaintingStyle.stroke;
+
+      dpPaintFill = Paint()
+        ..color = series.fillColor ?? series.color.withAlpha(30)
+        ..strokeWidth = series.drawSize
+        ..style = PaintingStyle.fill;
+      if (series.type == SeriesType.noValue)
+        //draw novalue data
+        drawNoValPoints(canvas, dpPaint, rect, series);
+      // draw data points
+      drawDataPoints(canvas, dpPaint, rect, series);
+    });
     if (insideNoValSeries.isNotEmpty)
       drawNoValInsidePoints(canvas, dpPaint, rect, insideNoValSeries);
     // draw labels
@@ -309,7 +309,7 @@ class MyChartPainter extends CustomPainter {
         } else {
           var e1 = series.values[1];
           var x1 = x + viewport.xPerStep! * _calculateFraction(e1.time, e.time);
-          var y1 = e1.value;
+          var y1 = (e1.value - viewport.min!) * yRatio;
           var m = (y1 - y) / (x1 - x);
           num q = y - m * x;
           var y0 = m * rect.left + q;
@@ -334,7 +334,7 @@ class MyChartPainter extends CustomPainter {
           var i = series.values.indexOf(e);
           var e1 = series.values[i - 1];
           var x1 = x + viewport.xPerStep! * _calculateFraction(e1.time, e.time);
-          var y1 = e1.value;
+          var y1 = (e1.value - viewport.min!) * yRatio;
           var m = (y1 - y) / (x1 - x);
           num q = y - m * x;
           var y0 = m * rect.right + q;
@@ -417,7 +417,7 @@ class MyChartPainter extends CustomPainter {
     if (e.pointType == PointType.circle)
       canvas.drawCircle(
         Offset(x, y),
-        e.isSame(selected?.value) ? 7 : 4,
+        e.isSame(selected?.value) ? series.drawSize + 3 : series.drawSize + 1,
         Paint()
           ..style = PaintingStyle.fill
           ..strokeWidth = 2
@@ -428,7 +428,9 @@ class MyChartPainter extends CustomPainter {
         RRect.fromRectAndRadius(
             Rect.fromCircle(
                 center: Offset(x, y),
-                radius: e.isSame(selected?.value) ? 7 : 4),
+                radius: e.isSame(selected?.value)
+                    ? series.drawSize + 3
+                    : series.drawSize + 1),
             Radius.zero),
         Paint()
           ..style = PaintingStyle.fill
@@ -615,10 +617,12 @@ class MyChartPainter extends CustomPainter {
           rect.bottomLeft + Offset(x + 10, y - offsetStep / 2),
           double.maxFinite,
           legendStyle,
-          element.name /* +
+          element
+              .name /* +
               (element.values.contains(selected!.value)
                   ? ': ' + selected!.value!.toValueString()
-                  : '') */);
+                  : '') */
+          );
       i++;
       if (twoColLegend) if (!(i < nS / 2 + 1)) {
         col0 = false;
@@ -727,7 +731,8 @@ class MyChartPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(MyChartPainter oldDelegate) => true;
+  bool shouldRepaint(MyChartPainter oldDelegate) =>
+      oldDelegate.viewport != viewport;
 
   @override
   bool shouldRebuildSemantics(MyChartPainter oldDelegate) => true;

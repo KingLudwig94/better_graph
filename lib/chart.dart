@@ -89,6 +89,7 @@ class Chart extends StatefulWidget {
   final double? rightMargin;
   final double? topMargin;
   final double? bottomMargin;
+
   @override
   _ChartState createState() => _ChartState();
 }
@@ -106,6 +107,7 @@ class _ChartState extends State<Chart> {
   MyChartPainter? chart;
   late ValueNotifier<Data?> _selected = ValueNotifier(null);
   late Offset _tapOffset;
+  bool notOriginalView = false;
 
   @override
   void initState() {
@@ -122,7 +124,10 @@ class _ChartState extends State<Chart> {
     endTime = widget.viewport?.end ?? maxT;
     rangeX = maxT.difference(minT);
 
-    if (widget.series.isNotEmpty) {
+    if (widget.series.isNotEmpty &&
+        widget.series
+            .where((element) => element.type != SeriesType.noValue)
+            .isNotEmpty) {
       maxY = widget.series
           .where((element) => element.type != SeriesType.noValue)
           .map((e) => e.max)
@@ -154,6 +159,8 @@ class _ChartState extends State<Chart> {
 
   @override
   Widget build(BuildContext context) {
+    //  viewport = calculateViewport();
+
     chart = MyChartPainter(widget.series,
         viewport: viewport,
         secondarySeries: widget.secondarySeries,
@@ -185,6 +192,24 @@ class _ChartState extends State<Chart> {
               ),
             ),
           ),
+          if (notOriginalView)
+            Positioned(
+              child: Container(
+                child: IconButton(
+                    padding: EdgeInsets.zero,
+                    splashRadius: 1,
+                    alignment: Alignment.topRight,
+                    icon: Icon(Icons.restore),
+                    onPressed: () {
+                      setState(() {
+                        notOriginalView = false;
+                        viewport = calculateViewport();
+                      });
+                    }),
+              ),
+              top: widget.topMargin,
+              right: widget.rightMargin,
+            ),
           if (widget.showTooltip && _selected.value != null)
             _tooltip(constraints),
         ],
@@ -200,9 +225,9 @@ class _ChartState extends State<Chart> {
       if (viewport.step == Step.Minute) {
         duration = Duration(minutes: dd!.floor());
       } else if (viewport.step == Step.Hour) {
-        duration = Duration(minutes: dd!.floor() * 30);
+        duration = Duration(minutes: dd!.floor() * 15);
       } else if (viewport.step == Step.Day) {
-        duration = Duration(hours: dd!.floor() * 12);
+        duration = Duration(hours: dd!.floor() * 6);
       }
       var startTime1 = startTime.subtract(duration);
       var endTime1 = endTime.subtract(duration);
@@ -214,6 +239,7 @@ class _ChartState extends State<Chart> {
       endTime = endTime1;
       _selected.value = null;
       viewport = viewport.copyWith(start: startTime, end: endTime);
+      notOriginalView = true;
     });
   }
 
@@ -225,9 +251,9 @@ class _ChartState extends State<Chart> {
       if (viewport.step == Step.Minute) {
         duration = Duration(minutes: dd!.floor());
       } else if (viewport.step == Step.Hour) {
-        duration = Duration(minutes: dd!.floor() * 15);
+        duration = Duration(minutes: dd!.floor() * 7);
       } else if (viewport.step == Step.Day) {
-        duration = Duration(hours: dd!.floor() * 12);
+        duration = Duration(hours: dd!.floor() * 6);
       }
 
       var startTime1 = startTime.subtract(duration);
@@ -250,6 +276,7 @@ class _ChartState extends State<Chart> {
       endTime = endTime1;
       _selected.value = null;
       viewport = viewport.copyWith(start: startTime, end: endTime);
+      notOriginalView = true;
     });
   }
 
