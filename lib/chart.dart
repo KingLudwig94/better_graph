@@ -43,6 +43,9 @@ class Chart extends StatefulWidget {
     /// whether to have the legend on two colums
     this.twoColLegend = true,
 
+    /// max number of digits in axis label number
+    this.maxCharsAxisLabel,
+
     /// widget to show selected data point info
     Widget Function(Data data, Series series)? tooltip,
 
@@ -89,6 +92,7 @@ class Chart extends StatefulWidget {
   final double? rightMargin;
   final double? topMargin;
   final double? bottomMargin;
+  final int? maxCharsAxisLabel;
 
   @override
   _ChartState createState() => _ChartState();
@@ -175,6 +179,7 @@ class _ChartState extends State<Chart> {
         leftMargin: widget.leftMargin!,
         rightMargin: widget.rightMargin!,
         topMargin: widget.topMargin!,
+        maxCharsAxisLabel: widget.maxCharsAxisLabel,
         bottomMargin: widget.bottomMargin!);
 
     return LayoutBuilder(

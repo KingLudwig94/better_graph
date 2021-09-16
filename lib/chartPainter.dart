@@ -22,6 +22,7 @@ class MyChartPainter extends CustomPainter {
     this.rightMargin = 54,
     this.bottomMargin = 54,
     this.topMargin = 54,
+    this.maxCharsAxisLabel,
     required this.twoColLegend,
   }) : super(repaint: selected) {
     seriesList = seriesList.map((series) {
@@ -144,6 +145,7 @@ class MyChartPainter extends CustomPainter {
   String? title;
   String? measureUnit;
   String? secondaryMeasureUnit;
+  int? maxCharsAxisLabel;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -540,19 +542,65 @@ class MyChartPainter extends CustomPainter {
     Offset posBottom = rect.bottomLeft + Offset(-leftMargin, -10);
 
     //draw y Label
+
     int prec = _findMinPrecision(
         [viewport.min!, viewport.max!], leftMargin - 5, labelStyle);
-    drawText(canvas, posBottom, leftMargin - 5, labelStyle,
-        viewport.min!.toStringAsPrecision(prec)); // print min value
-    drawText(canvas, posTop, leftMargin - 5, labelStyle,
-        viewport.max!.toStringAsPrecision(prec)); // print max value
+    _drawTextStringCustom(
+      canvas,
+      posBottom,
+      leftMargin - 5,
+      labelStyle,
+      prec,
+      viewport.min!,
+    ); //viewport.min!.toStringAsPrecision(prec)); // print min value
+    _drawTextStringCustom(canvas, posTop, leftMargin - 5, labelStyle, prec,
+        viewport.max!); // print max value
     if (measureUnit != null)
       drawText(canvas, posTop + Offset(0, -labelStyle.fontSize! - 3),
           rect.width / 3, labelStyle, measureUnit!);
   }
 
+  _drawTextStringCustom(Canvas canvas, Offset position, double width,
+      TextStyle style, int prec, num value,
+      {bool right = false}) {
+    String str;
+    if (value == 0) {
+      str = '0';
+      drawText(
+          canvas,
+          position.translate(
+              (right ? 0 : 1) * (prec - 1 - (right ? 0 : 1)) * style.fontSize!,
+              0),
+          style.fontSize!,
+          labelStyle,
+          str);
+      return;
+    } else {
+      if (maxCharsAxisLabel != null) {
+        if (maxCharsAxisLabel! < prec) {
+          str = value.toStringAsPrecision(maxCharsAxisLabel!);
+        } else {
+          str = value.toStringAsPrecision(prec);
+        }
+        drawText(
+            canvas,
+            position.translate(
+                (right ? 0 : 1) *
+                    (prec - maxCharsAxisLabel! - (right ? 0 : 1)) *
+                    labelStyle.fontSize!,
+                0),
+            width,
+            labelStyle,
+            str);
+        return;
+      }
+    }
+    drawText(canvas, position, width, style, value.toStringAsPrecision(prec));
+  }
+
   int _findMinPrecision(List<num> values, double width, TextStyle style) {
     int prec = 1;
+
     values.forEach((element) {
       int p = prec;
       while (measureText(viewport.max!.toStringAsPrecision(p), style, width) <
@@ -577,10 +625,12 @@ class MyChartPainter extends CustomPainter {
         [viewport.secondaryMin!, viewport.secondaryMax!],
         rightMargin - 5,
         labelStyle);
-    drawText(canvas, posBottom, rightMargin - 5, labelStyle,
-        viewport.secondaryMin!.toStringAsPrecision(prec)); // print min value
-    drawText(canvas, posTop, rightMargin - 5, labelStyle,
-        viewport.secondaryMax!.toStringAsPrecision(prec)); // print max value
+    _drawTextStringCustom(canvas, posBottom, rightMargin - 5, labelStyle, prec,
+        viewport.secondaryMin!,
+        right: true); // print min value
+    _drawTextStringCustom(canvas, posTop, rightMargin - 5, labelStyle, prec,
+        viewport.secondaryMax!,
+        right: true); // print max value
     if (secondaryMeasureUnit != null) {
       drawText(
           canvas,
