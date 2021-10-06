@@ -1,7 +1,7 @@
 import 'dart:ui';
 
-import 'package:better_graph/series.dart';
-import 'package:better_graph/viewport.dart';
+import 'package:better_graph/src/series.dart';
+import 'package:better_graph/src/viewport.dart';
 import 'package:flutter/material.dart' hide Viewport, Step;
 import 'package:intl/intl.dart' show DateFormat;
 // import 'package:in_date_utils/in_date_utils.dart';
@@ -545,14 +545,8 @@ class MyChartPainter extends CustomPainter {
 
     int prec = _findMinPrecision(
         [viewport.min!, viewport.max!], leftMargin - 5, labelStyle);
-    _drawTextStringCustom(
-      canvas,
-      posBottom,
-      leftMargin - 5,
-      labelStyle,
-      prec,
-      viewport.min!,
-    ); //viewport.min!.toStringAsPrecision(prec)); // print min value
+    _drawTextStringCustom(canvas, posBottom, leftMargin - 5, labelStyle, prec,
+        viewport.min!); // print min value
     _drawTextStringCustom(canvas, posTop, leftMargin - 5, labelStyle, prec,
         viewport.max!); // print max value
     if (measureUnit != null)
@@ -569,7 +563,7 @@ class MyChartPainter extends CustomPainter {
       drawText(
           canvas,
           position.translate(
-              (right ? 0 : 1) * (prec - 1 - (right ? 0 : 1)) * style.fontSize!,
+              (right ? 0 : 1) * (prec /* - 1  */- (right ? 0 : 1)) * style.fontSize!,
               0),
           style.fontSize!,
           labelStyle,
@@ -577,22 +571,23 @@ class MyChartPainter extends CustomPainter {
       return;
     } else {
       if (maxCharsAxisLabel != null) {
-        if (maxCharsAxisLabel! < prec) {
+        if (maxCharsAxisLabel! < prec &&
+            value.toString().length > maxCharsAxisLabel!) {
           str = value.toStringAsPrecision(maxCharsAxisLabel!);
+          drawText(
+              canvas,
+              position.translate(
+                  (right ? 0 : 1) *
+                      (prec - maxCharsAxisLabel! - (right ? 0 : 1)) *
+                      style.fontSize!,
+                  0),
+              width,
+              labelStyle,
+              str);
+          return;
         } else {
           str = value.toStringAsPrecision(prec);
         }
-        drawText(
-            canvas,
-            position.translate(
-                (right ? 0 : 1) *
-                    (prec - maxCharsAxisLabel! - (right ? 0 : 1)) *
-                    labelStyle.fontSize!,
-                0),
-            width,
-            labelStyle,
-            str);
-        return;
       }
     }
     drawText(canvas, position, width, style, value.toStringAsPrecision(prec));

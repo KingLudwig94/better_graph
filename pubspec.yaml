@@ -1,7 +1,6 @@
 name: better_graph
-description: A new Flutter package project.
+description: A new plotting library for flutter with range support and multiple data point formats
 version: 0.0.1
-author:
 homepage:
 
 environment:

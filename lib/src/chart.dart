@@ -1,8 +1,8 @@
 import 'dart:math';
 
-import 'package:better_graph/chartPainter.dart';
-import 'package:better_graph/series.dart';
-import 'package:better_graph/viewport.dart';
+import 'package:better_graph/src/chartPainter.dart';
+import 'package:better_graph/src/series.dart';
+import 'package:better_graph/src/viewport.dart';
 import 'package:flutter/material.dart' hide Viewport, Step;
 
 class Chart extends StatefulWidget {

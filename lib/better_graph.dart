@@ -1,5 +1,5 @@
 library better_graph;
 
-export 'chart.dart';
-export 'series.dart';
-export 'viewport.dart';
+export 'src/chart.dart';
+export 'src/series.dart';
+export 'src/viewport.dart';
