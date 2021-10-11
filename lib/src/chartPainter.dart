@@ -153,7 +153,8 @@ class MyChartPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     labelOffset = 7.0;
     points = Map();
-    chartW = size.width - (leftMargin + rightMargin);
+    chartW = size.width -
+        (leftMargin + (secondarySeries!.isNotEmpty ? rightMargin : 20));
     chartH = size.height - (topMargin + bottomMargin);
 
     viewport.xPerStep = chartW / viewport.stepCount;
@@ -237,9 +238,10 @@ class MyChartPainter extends CustomPainter {
         drawNoValPoints(canvas, dpPaint, rect, series);
       // draw data points
       drawDataPoints(canvas, dpPaint, rect, series);
+
+      if (insideNoValSeries.isNotEmpty)
+        drawNoValInsidePoints(canvas, rect, insideNoValSeries);
     });
-    if (insideNoValSeries.isNotEmpty)
-      drawNoValInsidePoints(canvas, dpPaint, rect, insideNoValSeries);
     // draw labels
     drawXLabels(canvas, rect, labelStyle);
     drawYLabels(canvas, rect, labelStyle);
@@ -562,6 +564,7 @@ class MyChartPainter extends CustomPainter {
     if (measureUnit != null)
       drawText(canvas, posTop + Offset(0, -labelStyle.fontSize! - 3),
           rect.width / 3, labelStyle, measureUnit!);
+
     if (yLabels != null && yLabels!.isNotEmpty) {
       yLabels!.forEach((element) {
         Offset o = Offset(0, -yRatio * element);
@@ -829,8 +832,7 @@ class MyChartPainter extends CustomPainter {
           Paint()..color = Colors.black);
   }
 
-  void drawNoValInsidePoints(
-      Canvas canvas, Paint dpPaint, Rect rect, List<Series> series) {
+  void drawNoValInsidePoints(Canvas canvas, Rect rect, List<Series> series) {
     double offset = insideNoValOffset;
 
     var fraction;
