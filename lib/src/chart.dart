@@ -49,6 +49,10 @@ class Chart extends StatefulWidget {
     /// widget to show selected data point info
     Widget Function(Data data, Series series)? tooltip,
 
+
+    /// custom yLabel values
+    this.yLabels,
+
     /// wheter to show the tooltip on data selection
     this.showTooltip = false,
     this.leftMargin = 54,
@@ -93,6 +97,7 @@ class Chart extends StatefulWidget {
   final double? topMargin;
   final double? bottomMargin;
   final int? maxCharsAxisLabel;
+  final List<num>? yLabels;
 
   @override
   _ChartState createState() => _ChartState();
@@ -180,7 +185,8 @@ class _ChartState extends State<Chart> {
         rightMargin: widget.rightMargin!,
         topMargin: widget.topMargin!,
         maxCharsAxisLabel: widget.maxCharsAxisLabel,
-        bottomMargin: widget.bottomMargin!);
+        bottomMargin: widget.bottomMargin!,
+        yLabels: widget.yLabels);
 
     return LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {

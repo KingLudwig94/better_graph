@@ -22,6 +22,7 @@ class MyChartPainter extends CustomPainter {
     this.rightMargin = 54,
     this.bottomMargin = 54,
     this.topMargin = 54,
+    this.yLabels,
     this.maxCharsAxisLabel,
     required this.twoColLegend,
   }) : super(repaint: selected) {
@@ -111,6 +112,7 @@ class MyChartPainter extends CustomPainter {
   late double chartH;
   late double yRatio;
   late double yRatioSecondary;
+  List<num>? yLabels;
 
   bool showLegend;
   bool twoColLegend;
@@ -260,11 +262,19 @@ class MyChartPainter extends CustomPainter {
     }
 
     // draw horizontal lines
+    if (yLabels != null && yLabels!.isNotEmpty) {
+      yLabels!.forEach((element) {
+        var y = (element - viewport.min!) * yRatio;
+        canvas.drawLine(Offset(rect.left, rect.bottom - y),
+            Offset(rect.right, rect.bottom - y), chBorder);
+      });
+    }
+    /* 
     var yD = chartH / 3.0;
     canvas.drawLine(Offset(rect.left, rect.bottom - yD),
         Offset(rect.right, rect.bottom - yD), chBorder);
     canvas.drawLine(Offset(rect.left, rect.bottom - yD * 2),
-        Offset(rect.right, rect.bottom - yD * 2), chBorder);
+        Offset(rect.right, rect.bottom - yD * 2), chBorder); */
   }
 
   void drawDataPoints(Canvas canvas, dpPaint, Rect rect, Series series) {
@@ -552,6 +562,14 @@ class MyChartPainter extends CustomPainter {
     if (measureUnit != null)
       drawText(canvas, posTop + Offset(0, -labelStyle.fontSize! - 3),
           rect.width / 3, labelStyle, measureUnit!);
+    if (yLabels != null && yLabels!.isNotEmpty) {
+      yLabels!.forEach((element) {
+        Offset o = Offset(0, -yRatio * element);
+        if (o.dy.abs() < labelStyle.fontSize!) return;
+        _drawTextStringCustom(
+            canvas, posBottom + o, leftMargin - 5, labelStyle, prec, element);
+      });
+    }
   }
 
   _drawTextStringCustom(Canvas canvas, Offset position, double width,
@@ -560,19 +578,14 @@ class MyChartPainter extends CustomPainter {
     String str;
     if (value == 0) {
       str = '0';
-      drawText(
-          canvas,
-          position.translate(
-              (right ? 0 : 1) * (prec /* - 1  */- (right ? 0 : 1)) * style.fontSize!,
-              0),
-          style.fontSize!,
-          labelStyle,
-          str);
+      Offset o = position.translate(
+          (right ? 0 : 1) * (prec - 1 - (right ? 0 : 1)) * style.fontSize!, 0);
+      drawText(canvas, o, style.fontSize!, labelStyle, str);
       return;
     } else {
       if (maxCharsAxisLabel != null) {
         if (maxCharsAxisLabel! < prec &&
-            value.toString().length > maxCharsAxisLabel!) {
+            value.toStringAsPrecision(prec).length > maxCharsAxisLabel!) {
           str = value.toStringAsPrecision(maxCharsAxisLabel!);
           drawText(
               canvas,
