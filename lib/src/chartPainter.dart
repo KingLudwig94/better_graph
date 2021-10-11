@@ -568,7 +568,8 @@ class MyChartPainter extends CustomPainter {
     if (yLabels != null && yLabels!.isNotEmpty) {
       yLabels!.forEach((element) {
         Offset o = Offset(0, -yRatio * element);
-        if (o.dy.abs() < labelStyle.fontSize!) return;
+        if (o.dy.abs() < labelStyle.fontSize! ||
+            rect.height - o.dy.abs() < labelStyle.fontSize!) return;
         _drawTextStringCustom(
             canvas, posBottom + o, leftMargin - 5, labelStyle, prec, element);
       });
