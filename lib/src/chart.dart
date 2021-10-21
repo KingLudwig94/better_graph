@@ -49,7 +49,6 @@ class Chart extends StatefulWidget {
     /// widget to show selected data point info
     Widget Function(Data data, Series series)? tooltip,
 
-
     /// custom yLabel values
     this.yLabels,
 
@@ -85,7 +84,7 @@ class Chart extends StatefulWidget {
   final Color? bgColor;
   final bool showLegend;
   final String? measureUnit;
-  final String? secondaryMeasureUnit;
+  final Map<String, String>? secondaryMeasureUnit;
   final bool zoom;
   final bool pan;
   final bool select;
@@ -107,7 +106,6 @@ class _ChartState extends State<Chart> {
   late DateTime startTime;
   late DateTime endTime;
   late Viewport viewport;
-  Viewport? secondaryViewport;
   late DateTime minT;
   late DateTime maxT;
   late Duration rangeX;
@@ -146,15 +144,11 @@ class _ChartState extends State<Chart> {
           .map((e) => e.min)
           .reduce((value, element) => min(value, element));
     }
-    num? maxSy;
-    num? minSy;
+    Map<String, num>? maxSy = {};
+    Map<String, num>? minSy = {};
     if (widget.secondarySeries.isNotEmpty) {
-      maxSy = widget.secondarySeries
-          .map((e) => e.max)
-          .reduce((value, element) => max(value, element));
-      minSy = widget.secondarySeries
-          .map((e) => e.min)
-          .reduce((value, element) => min(value, element));
+      widget.secondarySeries.forEach((e) => maxSy[e.name] = e.max);
+      widget.secondarySeries.forEach((e) => minSy[e.name] = e.min);
     }
     return Viewport(
       start: startTime,

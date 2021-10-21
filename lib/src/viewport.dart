@@ -13,17 +13,17 @@ class Viewport {
   late List<DateTime?> steps;
   late int stepCount;
   late num rangeY;
-  num? secondaryMax;
-  num? secondaryMin;
-  late num secondaryRangeY;
+  Map<String, num>? secondaryMax;
+  Map<String, num>? secondaryMin;
+  Map<String, num> secondaryRangeY = {};
 
   Viewport copyWith(
       {DateTime? start,
       DateTime? end,
       num? max,
       num? min,
-      num? secondaryMax,
-      num? secondaryMin}) {
+      Map<String, num>? secondaryMax,
+      Map<String, num>? secondaryMin}) {
     return Viewport(
         start: start ?? this.start,
         end: end ?? this.end,
@@ -45,8 +45,11 @@ class Viewport {
       step = _setStep();
     }
     if (max != null && min != null) rangeY = max! - min!;
-    if (this.secondaryMax != null && this.secondaryMin != null)
-      secondaryRangeY = secondaryMax! - secondaryMin!;
+    if (this.secondaryMax != null && this.secondaryMin != null) {
+      secondaryMax!.forEach((i, element) {
+        secondaryRangeY[i] = secondaryMax![i]! - secondaryMin![i]!;
+      });
+    }
     if (step != null) {
       if (step == Step.Day) {
         this.start = DateUtils.copyWith(this.start!,
