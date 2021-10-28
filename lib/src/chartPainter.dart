@@ -87,10 +87,12 @@ class MyChartPainter extends CustomPainter {
                   .toList(),
             );
     }).toList();
-    double sumSecX = secondaryMeasureUnit!.values
-            .map((value) => measureText(value, labelStyle, 100) + 5)
-            .reduce((value, element) => value + element) +
-        10;
+    double sumSecX = secondaryMeasureUnit!.isNotEmpty
+        ? secondaryMeasureUnit!.values
+                .map((value) => measureText(value, labelStyle, 100) + 5)
+                .reduce((value, element) => value + element) +
+            10
+        : 0;
     rightMargin = max(sumSecX, rightMargin);
     if (ranges != null)
       ranges = ranges!
@@ -478,10 +480,13 @@ class MyChartPainter extends CustomPainter {
   }
 
   drawText(Canvas canvas, Offset position, double width, TextStyle style,
-      String text, {bool ltr = true}) {
-    final textSpan = TextSpan(text: ltr ? text : text.split('').reversed.join(), style: style);
-    final textPainter =
-        TextPainter(text: textSpan, textDirection: ltr? TextDirection.ltr: TextDirection.rtl);
+      String text,
+      {bool ltr = true}) {
+    final textSpan = TextSpan(
+        text: ltr ? text : text.split('').reversed.join(), style: style);
+    final textPainter = TextPainter(
+        text: textSpan,
+        textDirection: ltr ? TextDirection.ltr : TextDirection.rtl);
     textPainter.layout(minWidth: 0, maxWidth: width);
     textPainter.paint(canvas, position);
   }
@@ -566,13 +571,11 @@ class MyChartPainter extends CustomPainter {
 
     //draw y Label
     List<num> toDraw = [viewport.min!, viewport.max!];
-    if(yLabels != null && yLabels!.isNotEmpty)
-      toDraw.addAll(yLabels!);
-    int prec = _findMinPrecision(
-        toDraw, leftMargin - 5, labelStyle);
+    if (yLabels != null && yLabels!.isNotEmpty) toDraw.addAll(yLabels!);
+    int prec = _findMinPrecision(toDraw, leftMargin - 5, labelStyle);
     _drawTextStringCustom(canvas, posBottom, leftMargin - 5, labelStyle, prec,
         viewport.min!); // print min value
-     _drawTextStringCustom(canvas, posTop, leftMargin - 5, labelStyle, prec,
+    _drawTextStringCustom(canvas, posTop, leftMargin - 5, labelStyle, prec,
         viewport.max!); // print max value
     if (measureUnit != null)
       drawText(canvas, posTop + Offset(0, -labelStyle.fontSize! - 3),
@@ -595,8 +598,7 @@ class MyChartPainter extends CustomPainter {
     String str;
     if (value == 0) {
       int p = prec;
-      if(maxCharsAxisLabel  != null)
-        p = min(prec, maxCharsAxisLabel!);
+      if (maxCharsAxisLabel != null) p = min(prec, maxCharsAxisLabel!);
       str = '0';
       Offset o = position.translate(
           (right ? 0 : 1) * (p - 1 - (right ? 0 : 1)) * style.fontSize!, 0);
@@ -610,12 +612,12 @@ class MyChartPainter extends CustomPainter {
           str = value.toStringAsPrecision(maxCharsAxisLabel!);
           drawText(
               canvas,
-             /*  position.translate(
+              /*  position.translate(
                   (right ? 0 : 1) *
                       (prec - maxCharsAxisLabel! - (right ? 0 : 1)) *
                       style.fontSize!,
                   0), */
-                  position,
+              position,
               width,
               labelStyle,
               str);
