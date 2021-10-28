@@ -71,7 +71,12 @@ class Chart extends StatefulWidget {
                 decoration: BoxDecoration(
                     color: Colors.grey[100],
                     border: Border.all(color: Colors.black, width: 1)),
-                child: Text(series.name + ': ' + data.toString()),
+                child: Text(series.name +
+                    ': ' +
+                    (series.type == SeriesType.noValueInside ||
+                            series.type == SeriesType.noValue
+                        ? data.toDescriptionString()
+                        : data.toString())),
               );
             }),
         super(key: key);

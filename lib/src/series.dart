@@ -130,6 +130,11 @@ class Data {
   String toValueString() {
     return DateFormat.Hms().format(time) + ' - ' + value.toStringAsFixed(3);
   }
+  
+  String toDescriptionString() {
+    assert(description != null);
+    return DateFormat.Hms().format(time) + ' - ' + description!;
+  }
 
   bool isSame(Data? other) => other != null
       ? this.originalData != null && other.originalData != null
