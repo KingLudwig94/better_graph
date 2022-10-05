@@ -633,16 +633,20 @@ class MyChartPainter extends CustomPainter {
   int _findMinPrecision(List<num> values, double width, TextStyle style) {
     int prec = 1;
 
+    // maximum precision to fill space
     values.forEach((element) {
       int p = prec;
-      while (measureText(viewport.max!.toStringAsPrecision(p), style, width) <=
+      while (measureText(element.toStringAsPrecision(p), style, width) <=
               width &&
           p < 21) {
         p++;
       }
       if (prec < p - 1) prec = p - 1;
     });
-
+/*     values.map((e)=>e.toStringAsPrecision(prec)).forEach((element) {
+     List sp = element.split(RegExp('[0-9]*\.[0-9]*[1-9]'));
+     print(sp);
+    }); */
     return prec;
   }
 

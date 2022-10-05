@@ -26,7 +26,7 @@ class Chart extends StatefulWidget {
     this.measureUnit,
 
     /// unit of measures for the secondary axis
-    this.secondaryMeasureUnit,
+    this.secondaryMeasureUnit = const {},
 
     /// whether to show a legend below the graph, required to show info on the selected [Data]
     this.showLegend = true,

@@ -189,7 +189,10 @@ class Range {
       this.xLabel = false,
       this.description})
       : assert(!yLabel || (yLabel && (top != null || bottom != null))),
-        assert(!(icon != null && description != null));
+        assert(!(icon != null && description != null)){
+          if(start == null) start = DateTime(0);
+          if(end == null) end = DateTime(3000);
+        }
 
   @override
   String toString() {
